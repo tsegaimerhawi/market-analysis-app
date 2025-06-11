@@ -15,8 +15,8 @@ function Form() {
     }
 
     const formData = new FormData();
-    formData.append("dataFile", file); // actual file
-    formData.append("startDate", startDate); // other fields
+    formData.append("dataFile", file);
+    formData.append("startDate", startDate);
     formData.append("endDate", endDate);
 
     try {
@@ -32,48 +32,46 @@ function Form() {
   };
 
   return (
-    <form
-      className="form-inline"
-      enctype="multipart/form-data"
-      onSubmit={handleSubmit}
-    >
-      <div className="form-group mb-2">
-        <label>
-          Start Date:{" "}
+    <form className="container mt-4" onSubmit={handleSubmit}>
+      <div className="d-flex flex-wrap align-items-end gap-3">
+        <div className="form-group">
+          <label htmlFor="startDate">Start Date</label>
           <input
+            id="startDate"
             className="form-control"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
-        </label>
-      </div>
-      <div className="form-group mb-2">
-        <label>
-          End Date:{" "}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="endDate">End Date</label>
           <input
-            type="date"
+            id="endDate"
             className="form-control"
+            type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-        </label>
-      </div>
-      <div className="form-group mb-2">
-        <label>
-          Upload Dataset:
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="fileInput">Upload Dataset</label>
           <input
+            id="fileInput"
             type="file"
             className="form-control"
             accept=".csv,.json"
             onChange={(e) => setFile(e.target.files[0])}
           />
-        </label>
-      </div>
-      <div className="form-group mb-2">
-        <button className="btn btn-primary mb-2" type="submit">
-          Run Algorithm
-        </button>
+        </div>
+
+        <div className="form-group mt-4">
+          <button className="btn btn-primary" type="submit">
+            Run Algorithm
+          </button>
+        </div>
       </div>
     </form>
   );
