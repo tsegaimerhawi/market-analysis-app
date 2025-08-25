@@ -20,11 +20,15 @@ function Form() {
     formData.append("endDate", endDate);
 
     try {
-      const res = await axios.post("http://localhost:5000/run", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(
+        "http://localhost:5000/stock_prediction/run_bayesian",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       console.log(res.data);
     } catch (err) {
       console.error(err);
