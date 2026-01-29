@@ -40,6 +40,10 @@ def get_data(data_config, source):
             df = None
     if df is None or df.empty or len(df) < 10:
         return None
+    # Normalize to timezone-naive so comparison with start_date/end_date works (yfinance returns tz-aware)
+    if hasattr(df.index, "tz") and df.index.tz is not None:
+        df = df.copy()
+        df.index = df.index.tz_convert("UTC").tz_localize(None)
     if start_date:
         df = df[df.index >= pd.to_datetime(start_date)]
     if end_date:
