@@ -1,5 +1,9 @@
-
 Flask
 numpy
 pandas
 flask-cors
+scikit-learn
+statsmodels
+xgboost
+yfinance
+feedparser

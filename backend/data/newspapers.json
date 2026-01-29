@@ -1,0 +1,12 @@
+[
+  {"id": "bbc-business", "name": "BBC Business", "feed": "https://feeds.bbci.co.uk/news/business/rss.xml"},
+  {"id": "reuters-business", "name": "Reuters Business", "feed": "https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best"},
+  {"id": "cnbc", "name": "CNBC", "feed": "https://www.cnbc.com/id/100003114/device/rss/rss.html"},
+  {"id": "marketwatch", "name": "MarketWatch", "feed": "https://feeds.content.dowjones.io/public/rss/mw_topstories"},
+  {"id": "yahoo-finance", "name": "Yahoo Finance", "feed": "https://finance.yahoo.com/news/rssindex"},
+  {"id": "bloomberg", "name": "Bloomberg", "feed": "https://feeds.bloomberg.com/markets/news.rss"},
+  {"id": "financial-times", "name": "Financial Times", "feed": "https://www.ft.com/?format=rss"},
+  {"id": "wsj", "name": "Wall Street Journal", "feed": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"},
+  {"id": "cnn-business", "name": "CNN Business", "feed": "http://rss.cnn.com/rss/money_news_international.rss"},
+  {"id": "guardian-business", "name": "The Guardian - Business", "feed": "https://www.theguardian.com/business/rss.xml"}
+]

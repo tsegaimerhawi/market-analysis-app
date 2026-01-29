@@ -1,127 +1,38 @@
-import React, { useState } from "react";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa";
+import React from "react";
 
-const SideBar = ({ setActiveComponent }) => {
-  const [expandedParent, setExpandedParent] = useState(null);
-
-  const toggleParent = (parentId) => {
-    setExpandedParent(expandedParent === parentId ? null : parentId);
-  };
-
-  const handleClick = (component) => {
-    setActiveComponent(component);
-  };
-
+export default function SideBar({ activeView, setActiveView }) {
   return (
     <div
-      className="bg-light border-right"
-      style={{ minHeight: "100vh", width: "250px" }}
+      className="bg-light border-end"
+      style={{ minHeight: "100vh", width: "200px" }}
     >
-      <div className="nav flex-column nav-pills">
-        <div className="nav-item">
+      <div className="p-3">
+        <h5 className="text-secondary mb-0">Market Analysis</h5>
+        <hr />
+        <nav className="nav flex-column">
           <button
-            className={`nav-link d-flex justify-content-between align-items-center ${
-              expandedParent === "stock-prediction" ? "active" : ""
-            }`}
-            onClick={() => toggleParent("stock-prediction")}
+            type="button"
+            className={`nav-link text-start border-0 bg-transparent ${activeView === "watchlist" ? "active fw-bold" : "text-dark"}`}
+            onClick={() => setActiveView("watchlist")}
           >
-            <span>Stock Prediction</span>
-            {expandedParent === "stock-prediction" ? (
-              <FaChevronDown />
-            ) : (
-              <FaChevronRight />
-            )}
+            Watchlist
           </button>
-          {expandedParent === "stock-prediction" && (
-            <div className="pl-3">
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("stock-prediction-bayesian")}
-              >
-                Bayesian Based
-              </a>
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("stock-prediction-child2")}
-              >
-                Child 2
-              </a>
-            </div>
-          )}
-        </div>
-
-        <div className="nav-item">
           <button
-            className={`nav-link d-flex justify-content-between align-items-center ${
-              expandedParent === "parent2" ? "active" : ""
-            }`}
-            onClick={() => toggleParent("parent2")}
+            type="button"
+            className={`nav-link text-start border-0 bg-transparent ${activeView === "analysis" ? "active fw-bold" : "text-dark"}`}
+            onClick={() => setActiveView("analysis")}
           >
-            <span>Parent 2</span>
-            {expandedParent === "parent2" ? (
-              <FaChevronDown />
-            ) : (
-              <FaChevronRight />
-            )}
+            Stock Analysis
           </button>
-          {expandedParent === "parent2" && (
-            <div className="pl-3">
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("parent2-child1")}
-              >
-                Child 1
-              </a>
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("parent2-child2")}
-              >
-                Child 2
-              </a>
-            </div>
-          )}
-        </div>
-
-        <div className="nav-item">
           <button
-            className={`nav-link d-flex justify-content-between align-items-center ${
-              expandedParent === "parent3" ? "active" : ""
-            }`}
-            onClick={() => toggleParent("parent3")}
+            type="button"
+            className={`nav-link text-start border-0 bg-transparent ${activeView === "scrape" ? "active fw-bold" : "text-dark"}`}
+            onClick={() => setActiveView("scrape")}
           >
-            <span>Parent 3</span>
-            {expandedParent === "parent3" ? (
-              <FaChevronDown />
-            ) : (
-              <FaChevronRight />
-            )}
+            Scrape Articles
           </button>
-          {expandedParent === "parent3" && (
-            <div className="pl-3">
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("parent3-child1")}
-              >
-                Child 1
-              </a>
-              <a
-                href="#"
-                className="nav-link text-dark"
-                onClick={() => handleClick("parent3-child2")}
-              >
-                Child 2
-              </a>
-            </div>
-          )}
-        </div>
+        </nav>
       </div>
     </div>
   );
-};
-
-export default SideBar;
+}

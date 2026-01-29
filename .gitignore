@@ -7,5 +7,15 @@ __pycache__/
 node_modules/
 dist/
 
+# Backend DB
+backend/watchlist.db
+
+# Backend runtime
+backend/logs/
+backend/uploads/
+
+# OS
+.DS_Store
+
 # Others
 .env

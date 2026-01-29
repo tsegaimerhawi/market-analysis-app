@@ -5,7 +5,7 @@ from utils.logger import logger
 def load_data(csv_name):
     logger.debug("load_data: Starting load_data script")
     try:
-        data = pd.read_csv(csv_name)
+        data = pd.read_csv(csv_name, thousands=",", quotechar='"')
         df = data.copy()
         if df.empty or len(df.columns) == 0:
             print(f"Warning: Worksheet '{csv_name}' is empty or has no data rows.")
@@ -24,7 +24,7 @@ def load_data(csv_name):
         ]
         parsed_date = False
         original_dates = df["Date"].copy()
-        logger.debug("load_data: Starting load_data script", df.head())
+        logger.debug("load_data: Starting load_data script")
         for fmt in formats_to_try:
             try:
                 df["Date"] = pd.to_datetime(original_dates, format=fmt, errors="coerce")

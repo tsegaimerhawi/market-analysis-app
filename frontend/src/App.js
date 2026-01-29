@@ -1,8 +1,9 @@
+import "./App.css";
 import Main from "./components/Main";
 
 function App() {
   return (
-    <div className="d-flex">
+    <div className="d-flex min-vh-100">
       <Main />
     </div>
   );

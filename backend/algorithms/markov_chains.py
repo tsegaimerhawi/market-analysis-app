@@ -1,6 +1,6 @@
 from utils.imports import *
-from utils.data_handler import load_data
 from utils.logger import logger
+from algorithms.base import get_data, compute_metrics, result_dict
 
 
 def build_transition_matrix(states_series, n_states=5):
@@ -20,13 +20,11 @@ def build_transition_matrix(states_series, n_states=5):
 
 
 def compute_steady_state(trans_matrix, iterations=200):
-    """Compute the steady state by matrix power iteration, ensuring matrix is stochastic."""
     P_work = trans_matrix.copy()
     n_states = P_work.shape[0]
 
     if n_states == 0:
-        print("Warning: Transition matrix is empty. Cannot compute steady state.")
-        return np.array([])
+        return "Warning: Transition matrix is empty. Cannot compute steady state."
 
     all_nan_rows_original = np.all(np.isnan(P_work), axis=1)
 
@@ -131,48 +129,30 @@ def create_states(prices, n_states=5):
 def run_algorithm(data, csv_file_name):
     logger.debug("Debug: Starting  Markov_chains : run_algorithm")
     logger.debug(data)
+    message = ""
     start_date_str = data["startDate"]
     end_date_str = data["endDate"]
     state_labels = ["Big Drop", "Small Drop", "Neutral", "Small Rise", "Big Rise"]
     n_markov_states = len(state_labels)
 
-    data = load_data(csv_file_name)
-    if data is None or data.empty:
-        print("Failed to load data or data is empty. Exiting.")
-        exit()
-    if start_date_str:
-        data = data[data.index >= pd.to_datetime(start_date_str)]
-    if end_date_str:
-        data = data[data.index <= pd.to_datetime(end_date_str)]
-    if data.empty:
-        print("DataFrame became empty after date filtering. Exiting.")
-        exit()
-
+    data = get_data(data, csv_file_name)
+    if data is None:
+        return result_dict("Markov Chains", {}, None, None, None, error="Failed to load or filter data")
     prices = data["Close"]
-    if len(prices) < 2:
-        print(
-            f"Not enough price data points ({len(prices)}) after filtering. Need at least 3 for one transition. Exiting."
-        )
-        exit()
+    if len(prices) < 10:
+        return result_dict("Markov Chains", {}, None, None, None, error="Not enough price data points")
 
     states_series = create_states(prices, n_states=n_markov_states)
     if states_series.empty or len(states_series) < 2:
-        print(
-            "Could not create states or not enough states in sequence for transition matrix. Exiting."
-        )
-        exit()
+        return result_dict("Markov Chains", {}, None, None, None, error="Could not create states")
 
     trans_matrix = build_transition_matrix(states_series, n_states=n_markov_states)
     if np.all(np.isnan(trans_matrix)):
-        print("Failed to build a valid transition matrix (all NaN). Exiting.")
-        exit()
+        return result_dict("Markov Chains", {}, None, None, None, error="Invalid transition matrix")
 
     current_state_idx = states_series.iloc[-1]
     if not (0 <= current_state_idx < len(state_labels)):
-        print(
-            f"Error: Current state index {current_state_idx} is out of bounds for state_labels (len {len(state_labels)})."
-        )
-        exit()
+        return result_dict("Markov Chains", {}, None, None, None, error="Current state index out of bounds")
     current_state_label = state_labels[current_state_idx]
     current_date = states_series.index[-1].strftime("%Y-%m-%d")
 
@@ -194,44 +174,44 @@ def run_algorithm(data, csv_file_name):
     else:
         price_change_pct = np.nan
 
-    print(f"\nCurrent Market State (as of {current_date}):")
-    print(f"- Price: ${current_price:.2f}")
+    logger.debug(f"\nCurrent Market State (as of {current_date}):")
+    logger.debug(f"- Price: ${current_price:.2f}")
     if not np.isnan(price_change_pct):
-        print(f"- Daily Change leading to this state: {price_change_pct:+.2f}%")
+        logger.debug(f"- Daily Change leading to this state: {price_change_pct:+.2f}%")
     else:
-        print("- Daily Change leading to this state: N/A")
-    print(f"- State: {current_state_label} (Index: {current_state_idx})")
+        logger.debug("- Daily Change leading to this state: N/A")
+    logger.debug(f"- State: {current_state_label} (Index: {current_state_idx})")
 
-    print("\nTransition Matrix (Probabilities for Next State):")
+    logger.debug("\nTransition Matrix (Probabilities for Next State):")
     trans_matrix_df = pd.DataFrame(
         trans_matrix,
         index=state_labels[:n_markov_states],  # Ensure labels match matrix dim
         columns=[f"Next {s}" for s in state_labels[:n_markov_states]],
     )
-    print(trans_matrix_df.round(4).to_string())
+    logger.debug(trans_matrix_df.round(4).to_string())
 
-    print(f"\nNext State Probabilities (Given Current = {current_state_label}):")
+    logger.debug(f"\nNext State Probabilities (Given Current = {current_state_label}):")
     if 0 <= current_state_idx < trans_matrix.shape[0]:
         current_probs = trans_matrix[current_state_idx]
         if np.all(np.isnan(current_probs)):
-            print(
+            logger.debug(
                 f"- Probabilities from state {current_state_label} are undefined (state likely not visited as origin, or no outgoing transitions observed)."
             )
         else:
             for state_lbl, prob in zip(state_labels[:n_markov_states], current_probs):
                 if pd.notna(prob):
-                    print(f"- {state_lbl:<12}: {prob:.2%}")
+                    logger.debug(f"- {state_lbl:<12}: {prob:.2%}")
                 else:
-                    print(f"- {state_lbl:<12}: N/A")
+                    logger.debug(f"- {state_lbl:<12}: N/A")
     else:
-        print(
+        logger.debug(
             f"- Current state index {current_state_idx} is out of bounds for the transition matrix."
         )
 
     if not np.all(np.isnan(trans_matrix)):
         steady_state_probs = compute_steady_state(trans_matrix.copy())
         if steady_state_probs.size > 0 and not np.all(np.isnan(steady_state_probs)):
-            print("\nLong-term Market State Distribution (Steady State):")
+            logger.debug("\nLong-term Market State Distribution (Steady State):")
             for state_lbl, prob in zip(
                 state_labels[:n_markov_states], steady_state_probs
             ):
@@ -240,13 +220,51 @@ def run_algorithm(data, csv_file_name):
                 else:
                     print(f"- {state_lbl:<12}: N/A")
         else:
-            print("\nCould not compute a valid steady-state distribution.")
+            logger.debug("\nCould not compute a valid steady-state distribution.")
     else:
-        print("\nSkipping steady-state calculation due to invalid transition matrix.")
+        logger.debug(
+            "\nSkipping steady-state calculation due to invalid transition matrix."
+        )
 
-    print("\n--- Analysis Complete ---")
+    logger.debug("\n--- Analysis Complete ---")
 
-    if not np.all(np.isnan(trans_matrix)) and state_labels:
-        plot_transition_matrix(trans_matrix, state_labels[:n_markov_states])
-    else:
-        print("Skipping plot: Transition matrix or labels are not available/valid.")
+    # Build standard result with test-period metrics
+    test_ratio = 0.2
+    n = len(prices)
+    test_size = max(1, int(n * test_ratio))
+    train_prices = prices.iloc[:-test_size]
+    test_prices = prices.iloc[-test_size:]
+    states_full = create_states(prices, n_states=n_markov_states)
+    if states_full.empty or len(states_full) < 2:
+        return result_dict("Markov Chains", {}, None, None, None, error="Insufficient data for states")
+    train_states = states_full[states_full.index.isin(train_prices.index)]
+    trans = build_transition_matrix(train_states, n_states=n_markov_states)
+    if np.all(np.isnan(trans)):
+        return result_dict("Markov Chains", {}, None, None, None, error="Invalid transition matrix")
+    price_arr = prices.values
+    state_centers = np.zeros(n_markov_states)
+    for k in range(n_markov_states):
+        rets = []
+        for i in range(len(prices) - 1):
+            if prices.index[i] in train_states.index and int(train_states.loc[prices.index[i]]) == k:
+                if price_arr[i] != 0:
+                    rets.append((price_arr[i + 1] / price_arr[i]) - 1.0)
+        state_centers[k] = np.nanmean(rets) if rets else 0.0
+    preds = []
+    for i in range(1, len(test_prices)):
+        prev_date = test_prices.index[i - 1]
+        curr_date = test_prices.index[i]
+        if prev_date not in states_full.index:
+            preds.append(test_prices.iloc[i - 1])
+            continue
+        curr_s = int(states_full.loc[prev_date])
+        curr_s = max(0, min(n_markov_states - 1, curr_s))
+        next_ret = np.nansum(trans[curr_s] * state_centers)
+        preds.append(float(test_prices.iloc[i - 1] * (1 + next_ret)))
+    actuals = test_prices.values[1:]
+    preds = np.array(preds)
+    if len(preds) != len(actuals):
+        preds = np.resize(preds, len(actuals))
+    dates = test_prices.index[1:]
+    metrics = compute_metrics(actuals, preds)
+    return result_dict("Markov Chains", metrics, dates, actuals, preds)
