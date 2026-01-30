@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { FaArrowUp, FaArrowDown, FaRobot, FaCalendarAlt, FaHistory } from 'react-icons/fa';
-import './FuturePrediction.css';
+import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaHistory } from 'react-icons/fa';
 
 const FuturePrediction = () => {
     const [symbol, setSymbol] = useState('');
@@ -23,9 +22,10 @@ const FuturePrediction = () => {
     const fetchWatchlist = async () => {
         try {
             const response = await axios.get('http://localhost:5000/api/watchlist');
-            setWatchlist(response.data.watchlist || []);
-            if (response.data.watchlist?.length > 0) {
-                setSymbol(response.data.watchlist[0].symbol);
+            const list = response.data.watchlist || [];
+            setWatchlist(list);
+            if (list.length > 0) {
+                setSymbol(list[0].symbol);
             }
         } catch (err) {
             console.error('Failed to fetch watchlist', err);
@@ -44,11 +44,11 @@ const FuturePrediction = () => {
                 startDate,
                 endDate,
                 prediction_length: predictionLength,
-                algorithms: JSON.stringify(["linear_regression", "random_forest", "xgboost"])
+                algorithms: ["linear_regression", "random_forest", "xgboost"]
             });
             setResult(response.data);
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to get predictions');
+            setError(err.response?.data?.error || 'Failed to get predictions. Please try a different symbol or date range.');
         } finally {
             setLoading(false);
         }
@@ -58,116 +58,119 @@ const FuturePrediction = () => {
         if (!result) return [];
 
         const historicalData = result.historical.dates.map((date, i) => ({
-            date,
-            price: result.historical.prices[i],
-            type: 'Historical'
+            date: date.slice(0, 10),
+            historical: result.historical.prices[i],
         }));
 
         const futureData = result.dates.map((date, i) => {
-            const item = { date, type: 'Predicted' };
+            const item = { date: date.slice(0, 10) };
             Object.keys(result.predictions).forEach(algo => {
                 item[algo] = result.predictions[algo][i];
             });
-            // Add a consensus price (average of all models)
             const prices = Object.values(result.predictions).map(p => p[i]);
             item.consensus = prices.reduce((a, b) => a + b, 0) / prices.length;
             return item;
         });
 
-        // Merge: the last historical point should connect to future points
-        const lastHistorical = historicalData[historicalData.length - 1];
-        const connectedFutureData = futureData.map(d => ({ ...d }));
-
-        // Add historical price to the first future entry for connection if needed
-        // But Recharts handles gaps if we just provide the data points.
-
-        return [...historicalData, ...connectedFutureData];
+        return [...historicalData, ...futureData];
     };
 
     const chartData = prepareChartData();
 
     return (
-        <div className="future-prediction-container">
-            <div className="prediction-header">
-                <h1><FaRobot /> Future Market Prediction</h1>
-                <p>Predict stock trends using ensemble models and majority voting consensus.</p>
-            </div>
+        <div className="future-prediction">
+            <h1 className="mb-4">Future Prediction</h1>
+            <p className="text-muted mb-4">Project future market trends using ensemble models and majority voting consensus.</p>
 
-            <div className="prediction-controls card">
-                <form onSubmit={handlePredict} className="prediction-form">
-                    <div className="form-group">
-                        <label>Select Company</label>
-                        <select value={symbol} onChange={(e) => setSymbol(e.target.value)} required>
-                            <option value="">-- Choose Ticker --</option>
+            <div className="card card-body mb-4 shadow-sm border-0 bg-light">
+                <form onSubmit={handlePredict} className="prediction-form row g-3">
+                    <div className="col-md-4">
+                        <label className="form-label fw-bold">Company</label>
+                        <select className="form-select" value={symbol} onChange={(e) => setSymbol(e.target.value)} required>
+                            <option value="">Select company…</option>
                             {watchlist.map(item => (
-                                <option key={item.id} value={item.symbol}>{item.symbol} - {item.company_name}</option>
+                                <option key={item.id} value={item.symbol}>
+                                    {item.symbol} {item.company_name && item.company_name !== item.symbol ? `(${item.company_name})` : ""}
+                                </option>
                             ))}
                         </select>
                     </div>
-                    <div className="form-group">
-                        <label>Start Date (Optional)</label>
-                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <div className="col-md-2">
+                        <label className="form-label fw-bold">Start Date</label>
+                        <input type="date" className="form-control" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                     </div>
-                    <div className="form-group">
-                        <label>End Date (Optional)</label>
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    <div className="col-md-2">
+                        <label className="form-label fw-bold">End Date</label>
+                        <input type="date" className="form-control" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                     </div>
-                    <div className="form-group">
-                        <label>Prediction Length (Days)</label>
+                    <div className="col-md-2">
+                        <label className="form-label fw-bold">Days Ahead</label>
                         <input
                             type="number"
+                            className="form-control"
                             min="1"
                             max="30"
                             value={predictionLength}
                             onChange={(e) => setPredictionLength(e.target.value)}
                         />
                     </div>
-                    <button type="submit" className="predict-btn" disabled={loading}>
-                        {loading ? 'Analyzing...' : 'Run Prediction'}
-                    </button>
+                    <div className="col-md-2 d-flex align-items-end">
+                        <button type="submit" className="btn btn-primary w-100 fw-bold" disabled={loading || !symbol}>
+                            {loading ? 'Analyzing…' : 'Forecast'}
+                        </button>
+                    </div>
                 </form>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="alert alert-danger">{error}</div>}
 
             {result && (
-                <div className="prediction-results">
-                    <div className="results-grid">
-                        <div className="chart-section card">
-                            <h3><FaHistory /> Price Forecast</h3>
+                <div className="row">
+                    <div className="col-lg-8 mb-4">
+                        <div className="card card-body h-100 shadow-sm border-0">
+                            <h5 className="card-title mb-4 fw-bold text-dark"><FaHistory className="me-2 text-primary" /> Price Forecast</h5>
                             <div style={{ width: '100%', height: 400 }}>
                                 <ResponsiveContainer>
                                     <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                                        <XAxis dataKey="date" stroke="#ccc" />
-                                        <YAxis stroke="#ccc" />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#222', border: '1px solid #444', color: '#fff' }}
-                                            itemStyle={{ color: '#fff' }}
-                                        />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} />
+                                        <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                         <Legend />
-                                        <Line type="monotone" dataKey="price" stroke="#3498db" strokeWidth={3} name="Historical" dot={false} />
-                                        <Line type="monotone" dataKey="consensus" stroke="#f1c40f" strokeWidth={3} strokeDasharray="5 5" name="Consensus Prediction" />
-                                        <Line type="monotone" dataKey="linear_regression" stroke="#2ecc71" strokeWidth={1} dot={false} name="Linear Regression" />
-                                        <Line type="monotone" dataKey="random_forest" stroke="#e67e22" strokeWidth={1} dot={false} name="Random Forest" />
-                                        <Line type="monotone" dataKey="xgboost" stroke="#9b59b6" strokeWidth={1} dot={false} name="XGBoost" />
+                                        <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
+                                        <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Consensus" />
+                                        <Line type="monotone" dataKey="linear_regression" stroke="#198754" strokeWidth={1} dot={false} name="Lin Reg" />
+                                        <Line type="monotone" dataKey="random_forest" stroke="#fd7e14" strokeWidth={1} dot={false} name="Rand Forest" />
+                                        <Line type="monotone" dataKey="xgboost" stroke="#6f42c1" strokeWidth={1} dot={false} name="XGBoost" />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="voting-section card">
-                            <h3><FaCalendarAlt /> Consensus Dashboard</h3>
-                            <div className="voting-list">
-                                {result.voting.map((vote, idx) => (
-                                    <div key={idx} className={`voting-item ${vote.trend.toLowerCase()}`}>
-                                        <span className="vote-date">{vote.date}</span>
-                                        <span className="vote-trend">
-                                            {vote.trend === 'Up' ? <FaArrowUp /> : <FaArrowDown />} {vote.trend}
-                                        </span>
-                                        <span className="vote-confidence">Confidence: {vote.confidence}%</span>
-                                    </div>
-                                ))}
+                    <div className="col-lg-4 mb-4">
+                        <div className="card h-100 shadow-sm border-0">
+                            <div className="card-header bg-white border-bottom-0 pt-4">
+                                <h5 className="mb-0 fw-bold text-dark"><FaCalendarAlt className="me-2 text-primary" /> Consensus Trend</h5>
+                                <p className="small text-muted mb-0">Daily prediction majority vote</p>
+                            </div>
+                            <div className="card-body px-0 pt-2">
+                                <div className="list-group list-group-flush">
+                                    {result.voting.map((vote, idx) => (
+                                        <div key={idx} className="list-group-item d-flex justify-content-between align-items-center border-0 px-4 py-3">
+                                            <div>
+                                                <div className="fw-bold mb-1">{vote.date}</div>
+                                                <div className={`badge rounded-pill ${vote.trend === 'Up' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`} style={{ fontSize: '0.8rem' }}>
+                                                    {vote.trend === 'Up' ? <FaArrowUp className="me-1" /> : <FaArrowDown className="me-1" />} {vote.trend}
+                                                </div>
+                                            </div>
+                                            <div className="text-end">
+                                                <div className="fw-bold" style={{ color: '#0d6efd' }}>{vote.confidence}%</div>
+                                                <div className="small text-muted">Confidence</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

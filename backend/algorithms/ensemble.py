@@ -8,6 +8,10 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 import datetime
 
+def clean_symbol(symbol):
+    """Strip $ and whitespace."""
+    return (symbol or "").strip().upper().replace("$", "")
+
 class EnsemblePredictor:
     def __init__(self, algorithms_registry):
         self.registry = algorithms_registry
@@ -34,10 +38,11 @@ class EnsemblePredictor:
             if len(current_window) >= 2:
                 ret = (current_window[-1] - current_window[-2]) / current_window[-2] if current_window[-2] != 0 else 0
             
-            features = np.array(lags + [ret]).reshape(1, -1)
+            # Create DataFrame for prediction to maintain feature names
+            features_df = pd.DataFrame([lags + [ret]], columns=self.feature_names)
             
             # Predict
-            pred = model.predict(features)[0]
+            pred = float(model.predict(features_df)[0])
             predictions.append(pred)
             
             # Update window
@@ -51,14 +56,15 @@ class EnsemblePredictor:
         return pd.date_range(start=last_date + pd.Timedelta(days=1), periods=steps, freq='B')
 
     def run_ensemble(self, data_config, source, steps, selected_algos=None):
+        source = clean_symbol(source)
         df = get_data(data_config, source)
         if df is None:
-            return {"error": "Failed to load data"}
+            return {"error": f"Failed to load data for {source}. Please check the symbol and date range."}
         
         last_date = df.index[-1]
         last_close = df["Close"].values[-1]
         n_lags = 5
-        last_window = df["Close"].values[-n_lags-1:].tolist() # Get enough for current and lags
+        self.feature_names = [f"lag_{i}" for i in range(1, n_lags + 1)] + ["returns"]
         
         future_dates = self.get_future_dates(last_date, steps)
         
@@ -96,29 +102,28 @@ class EnsemblePredictor:
                 if X is not None:
                     model.fit(X, y)
                     preds = self.predict_recursive(model, df["Close"].values[-n_lags:], steps, n_lags)
-                    results[algo_id] = preds
-                    all_preds.append(preds)
+                    results[algo_id] = [float(p) for p in preds]
+                    all_preds.append([float(p) for p in preds])
 
         if not all_preds:
-            return {"error": "No valid models selected/trained"}
+            return {"error": f"Insufficient data to train models for {source}. Try a longer date range."}
 
         # Majority Voting for Trend
         # Trend is Up (1) if pred[t] > pred[t-1] (or last_close for t=0), else Down (0)
         voting_results = []
-        all_preds_matrix = np.array(all_preds) # (num_models, steps)
         
         for t in range(steps):
             votes_up = 0
             for m in range(len(all_preds)):
-                prev_val = last_close if t == 0 else all_preds[m][t-1]
-                if all_preds[m][t] > prev_val:
+                prev_val = float(last_close) if t == 0 else float(all_preds[m][t-1])
+                if float(all_preds[m][t]) > prev_val:
                     votes_up += 1
             
             majority_trend = "Up" if votes_up > len(all_preds) / 2 else "Down"
             voting_results.append({
                 "date": str(future_dates[t].date()),
                 "trend": majority_trend,
-                "confidence": round(votes_up / len(all_preds) * 100, 2)
+                "confidence": round(float(votes_up / len(all_preds) * 100), 2)
             })
 
         return {
@@ -127,7 +132,7 @@ class EnsemblePredictor:
             "voting": voting_results,
             "historical": {
                 "dates": [str(d.date()) for d in df.index[-20:]],
-                "prices": df["Close"].values[-20:].tolist()
+                "prices": [float(p) for p in df["Close"].values[-20:]]
             }
         }
 
