@@ -142,11 +142,34 @@ class EnsemblePredictor:
         else:
             recommendation = "Neutral / Hold"
 
+        # Fetch "Actual" future data for comparison if it exists
+        actual_compare = []
+        try:
+            # We need to fetch data after last_date. 
+            # We add a buffer to ensure we get enough days.
+            compare_config = {
+                "startDate": str(last_date + pd.Timedelta(days=1)),
+                "endDate": str(future_dates[-1] + pd.Timedelta(days=5)) # Buffer
+            }
+            df_actual = get_data(compare_config, source)
+            if df_actual is not None:
+                # Align df_actual with future_dates
+                for fd in future_dates:
+                    if fd in df_actual.index:
+                        actual_compare.append(float(df_actual.loc[fd, "Close"]))
+                    else:
+                        actual_compare.append(None)
+            else:
+                actual_compare = [None] * steps
+        except Exception:
+            actual_compare = [None] * steps
+
         return {
             "dates": [str(d.date()) for d in future_dates],
             "predictions": results,
             "voting": voting_results,
             "recommendation": recommendation,
+            "actual_future": actual_compare,
             "historical": {
                 "dates": [str(d.date()) for d in df.index[-20:]],
                 "prices": [float(p) for p in df["Close"].values[-20:]]

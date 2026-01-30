@@ -70,7 +70,10 @@ const FuturePrediction = () => {
         }));
 
         const futureData = result.dates.map((date, i) => {
-            const item = { date: date.slice(0, 10) };
+            const item = {
+                date: date.slice(0, 10),
+                actualCompare: result.actual_future ? result.actual_future[i] : null
+            };
             Object.keys(result.predictions).forEach(algo => {
                 item[algo] = result.predictions[algo][i];
             });
@@ -135,7 +138,7 @@ const FuturePrediction = () => {
                 <div className="row">
                     <div className="col-12 mb-4">
                         <div className={`card shadow-sm border-0 text-white ${result.recommendation.includes('Buy') ? 'bg-success' :
-                                result.recommendation.includes('Sell') ? 'bg-danger' : 'bg-secondary'
+                            result.recommendation.includes('Sell') ? 'bg-danger' : 'bg-secondary'
                             }`}>
                             <div className="card-body d-flex justify-content-between align-items-center py-4">
                                 <div>
@@ -162,6 +165,7 @@ const FuturePrediction = () => {
                                         <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                         <Legend />
                                         <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
+                                        <Line type="monotone" dataKey="actualCompare" stroke="#212529" strokeWidth={3} name="Actual (Ground Truth)" strokeDasharray="3 3" dot={true} />
                                         <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Ensemble Consensus" />
                                         <Line type="monotone" dataKey="linear_regression" stroke="#198754" strokeWidth={1} dot={false} name="Lin Reg" />
                                         <Line type="monotone" dataKey="random_forest" stroke="#fd7e14" strokeWidth={1} dot={false} name="Rand Forest" />
