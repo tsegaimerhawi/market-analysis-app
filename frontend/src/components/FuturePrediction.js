@@ -16,6 +16,13 @@ const FuturePrediction = () => {
     const [watchlist, setWatchlist] = useState([]);
 
     useEffect(() => {
+        const today = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(today.getMonth() - 6);
+
+        setEndDate(today.toISOString().split('T')[0]);
+        setStartDate(sixMonthsAgo.toISOString().split('T')[0]);
+
         fetchWatchlist();
     }, []);
 
