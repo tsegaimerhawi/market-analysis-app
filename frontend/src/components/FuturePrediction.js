@@ -133,6 +133,23 @@ const FuturePrediction = () => {
 
             {result && (
                 <div className="row">
+                    <div className="col-12 mb-4">
+                        <div className={`card shadow-sm border-0 text-white ${result.recommendation.includes('Buy') ? 'bg-success' :
+                                result.recommendation.includes('Sell') ? 'bg-danger' : 'bg-secondary'
+                            }`}>
+                            <div className="card-body d-flex justify-content-between align-items-center py-4">
+                                <div>
+                                    <h4 className="mb-1 fw-bold">Ensemble Majority Decision</h4>
+                                    <p className="mb-0 opacity-75">Based on a majority vote of {Object.keys(result.predictions).length} independent models</p>
+                                </div>
+                                <div className="text-end">
+                                    <h2 className="mb-0 fw-bold text-uppercase">{result.recommendation}</h2>
+                                    <div className="small fw-bold opacity-75">OVERALL MARKET TREND</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="col-lg-8 mb-4">
                         <div className="card card-body h-100 shadow-sm border-0">
                             <h5 className="card-title mb-4 fw-bold text-dark"><FaHistory className="me-2 text-primary" /> Price Forecast</h5>
@@ -145,7 +162,7 @@ const FuturePrediction = () => {
                                         <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                         <Legend />
                                         <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
-                                        <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Consensus" />
+                                        <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Ensemble Consensus" />
                                         <Line type="monotone" dataKey="linear_regression" stroke="#198754" strokeWidth={1} dot={false} name="Lin Reg" />
                                         <Line type="monotone" dataKey="random_forest" stroke="#fd7e14" strokeWidth={1} dot={false} name="Rand Forest" />
                                         <Line type="monotone" dataKey="xgboost" stroke="#6f42c1" strokeWidth={1} dot={false} name="XGBoost" />

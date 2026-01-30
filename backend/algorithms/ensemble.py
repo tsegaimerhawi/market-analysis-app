@@ -4,7 +4,7 @@ import pandas as pd
 from algorithms.base import get_data, result_dict
 from algorithms.features import build_lag_features
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, VotingRegressor
 from xgboost import XGBRegressor
 import datetime
 
@@ -126,10 +126,27 @@ class EnsemblePredictor:
                 "confidence": round(float(votes_up / len(all_preds) * 100), 2)
             })
 
+        # Consensus Recommendation based on Majority Vote
+        # Look at the overall trend (sum of daily votes)
+        total_up_votes = sum(1 for v in voting_results if v["trend"] == "Up")
+        total_days = len(voting_results)
+        
+        if total_up_votes / total_days > 0.7:
+            recommendation = "Strong Buy"
+        elif total_up_votes / total_days > 0.55:
+            recommendation = "Buy"
+        elif total_up_votes / total_days < 0.3:
+            recommendation = "Strong Sell"
+        elif total_up_votes / total_days < 0.45:
+            recommendation = "Sell"
+        else:
+            recommendation = "Neutral / Hold"
+
         return {
             "dates": [str(d.date()) for d in future_dates],
             "predictions": results,
             "voting": voting_results,
+            "recommendation": recommendation,
             "historical": {
                 "dates": [str(d.date()) for d in df.index[-20:]],
                 "prices": [float(p) for p in df["Close"].values[-20:]]
