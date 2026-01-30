@@ -2244,3 +2244,198 @@ TypeError: Object of type float32 is not JSON serializable
 2026-01-30 20:25:58,689 | INFO | werkzeug | _internal.py:96 |  * Restarting with stat
 2026-01-30 20:26:02,591 | WARNING | werkzeug | _internal.py:96 |  * Debugger is active!
 2026-01-30 20:26:02,610 | INFO | werkzeug | _internal.py:96 |  * Debugger PIN: 134-698-335
+2026-01-30 20:26:51,519 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:26:51] "OPTIONS /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:26:52,030 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:26:52,038 | DEBUG | peewee | peewee.py:3319 | ('CREATE TABLE IF NOT EXISTS "_tz_kv" ("key" VARCHAR(255) NOT NULL PRIMARY KEY, "value" VARCHAR(255)) WITHOUT ROWID', [])
+2026-01-30 20:26:52,038 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:26:52,131 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:26:52,147 | DEBUG | yfinance | history.py:193 | META: Yahoo GET parameters: {'period1': '2025-01-27 00:00:00-05:00', 'period2': '2026-01-28 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |   Entering get()
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |    Entering _make_request()
+2026-01-30 20:26:52,149 | DEBUG | yfinance | data.py:398 | url=https://query2.finance.yahoo.com/v8/finance/chart/META
+2026-01-30 20:26:52,149 | DEBUG | yfinance | data.py:399 | params=frozendict.frozendict({'period1': 1737954000, 'period2': 1769576400, 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'})
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |     Entering _get_cookie_and_crumb()
+2026-01-30 20:26:52,149 | DEBUG | yfinance | data.py:354 | cookie_mode = 'basic'
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |      Entering _get_cookie_and_crumb_basic()
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |       Entering _get_cookie_basic()
+2026-01-30 20:26:52,149 | DEBUG | yfinance | utils.py:92 |        Entering _load_cookie_curlCffi()
+2026-01-30 20:26:52,151 | DEBUG | peewee | peewee.py:3319 | ('CREATE TABLE IF NOT EXISTS "_cookieschema" ("strategy" VARCHAR(255) NOT NULL PRIMARY KEY, "fetch_date" DATETIME NOT NULL, "cookie_bytes" BLOB NOT NULL) WITHOUT ROWID', [])
+2026-01-30 20:26:52,151 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."strategy", "t1"."fetch_date", "t1"."cookie_bytes" FROM "_cookieschema" AS "t1" WHERE ("t1"."strategy" = ?) LIMIT ? OFFSET ?', ['curlCffi', 1, 0])
+2026-01-30 20:26:52,152 | DEBUG | yfinance | utils.py:97 |        Exiting _load_cookie_curlCffi()
+2026-01-30 20:26:52,152 | DEBUG | yfinance | data.py:193 | reusing persistent cookie
+2026-01-30 20:26:52,152 | DEBUG | yfinance | utils.py:97 |       Exiting _get_cookie_basic()
+2026-01-30 20:26:52,152 | DEBUG | yfinance | utils.py:92 |       Entering _get_crumb_basic()
+2026-01-30 20:26:52,152 | DEBUG | yfinance | utils.py:92 |        Entering _get_cookie_basic()
+2026-01-30 20:26:52,152 | DEBUG | yfinance | data.py:190 | reusing cookie
+2026-01-30 20:26:52,152 | DEBUG | yfinance | utils.py:97 |        Exiting _get_cookie_basic()
+2026-01-30 20:26:52,505 | DEBUG | yfinance | data.py:239 | crumb = '85LC1nyfVbw'
+2026-01-30 20:26:52,506 | DEBUG | yfinance | utils.py:97 |       Exiting _get_crumb_basic()
+2026-01-30 20:26:52,506 | DEBUG | yfinance | utils.py:97 |      Exiting _get_cookie_and_crumb_basic()
+2026-01-30 20:26:52,506 | DEBUG | yfinance | utils.py:97 |     Exiting _get_cookie_and_crumb()
+2026-01-30 20:26:52,599 | DEBUG | yfinance | data.py:437 | response code=200
+2026-01-30 20:26:52,599 | DEBUG | yfinance | utils.py:97 |    Exiting _make_request()
+2026-01-30 20:26:52,600 | DEBUG | yfinance | utils.py:97 |   Exiting get()
+2026-01-30 20:26:52,621 | DEBUG | yfinance | history.py:307 | META: yfinance received OHLC data: 2025-01-27 14:30:00 -> 2026-01-27 14:30:00
+2026-01-30 20:26:52,633 | DEBUG | yfinance | history.py:339 | META: OHLC after cleaning: 2025-01-27 09:30:00-05:00 -> 2026-01-27 09:30:00-05:00
+2026-01-30 20:26:52,652 | DEBUG | yfinance | history.py:427 | META: OHLC after combining events: 2025-01-27 00:00:00-05:00 -> 2026-01-27 00:00:00-05:00
+2026-01-30 20:26:52,656 | DEBUG | yfinance | history.py:510 | META: yfinance returning OHLC: 2025-01-27 00:00:00-05:00 -> 2026-01-27 00:00:00-05:00
+2026-01-30 20:26:52,656 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-01-30 20:26:52,656 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-01-30 20:26:53,049 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:26:53,049 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:26:53,049 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:26:53,050 | ERROR | my_project | company_service.py:32 | yfinance get_history failed: unconverted data remains:  05:00:00
+Traceback (most recent call last):
+  File "/Users/merhawi/Documents/personal/projects/market-analysis-app/backend/services/company_service.py", line 21, in get_history
+    df = ticker.history(start=start_date, end=end_date, auto_adjust=True)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/base.py", line 129, in history
+    return self._lazy_load_price_history().history(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/scrapers/history.py", line 131, in history
+    start_dt = utils._parse_user_dt(start, tz)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 431, in _parse_user_dt
+    dt = _datetime.datetime.strptime(str(dt), '%Y-%m-%d')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 568, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  05:00:00
+2026-01-30 20:26:53,057 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:26:53] "POST /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:27:00,091 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:00] "OPTIONS /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:27:00,098 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:27:00,100 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:27:00,103 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:27:00,104 | DEBUG | yfinance | history.py:193 | META: Yahoo GET parameters: {'period1': '2025-01-27 00:00:00-05:00', 'period2': '2026-01-27 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-01-30 20:27:00,105 | DEBUG | yfinance | utils.py:92 |   Entering get()
+2026-01-30 20:27:00,105 | DEBUG | yfinance | utils.py:92 |    Entering _make_request()
+2026-01-30 20:27:00,105 | DEBUG | yfinance | data.py:398 | url=https://query2.finance.yahoo.com/v8/finance/chart/META
+2026-01-30 20:27:00,105 | DEBUG | yfinance | data.py:399 | params=frozendict.frozendict({'period1': 1737954000, 'period2': 1769490000, 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'})
+2026-01-30 20:27:00,105 | DEBUG | yfinance | utils.py:92 |     Entering _get_cookie_and_crumb()
+2026-01-30 20:27:00,105 | DEBUG | yfinance | data.py:354 | cookie_mode = 'basic'
+2026-01-30 20:27:00,105 | DEBUG | yfinance | utils.py:92 |      Entering _get_cookie_and_crumb_basic()
+2026-01-30 20:27:00,105 | DEBUG | yfinance | utils.py:92 |       Entering _get_cookie_basic()
+2026-01-30 20:27:00,105 | DEBUG | yfinance | data.py:190 | reusing cookie
+2026-01-30 20:27:00,106 | DEBUG | yfinance | utils.py:97 |       Exiting _get_cookie_basic()
+2026-01-30 20:27:00,106 | DEBUG | yfinance | utils.py:92 |       Entering _get_crumb_basic()
+2026-01-30 20:27:00,106 | DEBUG | yfinance | data.py:214 | reusing crumb
+2026-01-30 20:27:00,106 | DEBUG | yfinance | utils.py:97 |       Exiting _get_crumb_basic()
+2026-01-30 20:27:00,106 | DEBUG | yfinance | utils.py:97 |      Exiting _get_cookie_and_crumb_basic()
+2026-01-30 20:27:00,106 | DEBUG | yfinance | utils.py:97 |     Exiting _get_cookie_and_crumb()
+2026-01-30 20:27:00,206 | DEBUG | yfinance | data.py:437 | response code=200
+2026-01-30 20:27:00,207 | DEBUG | yfinance | utils.py:97 |    Exiting _make_request()
+2026-01-30 20:27:00,207 | DEBUG | yfinance | utils.py:97 |   Exiting get()
+2026-01-30 20:27:00,218 | DEBUG | yfinance | history.py:307 | META: yfinance received OHLC data: 2025-01-27 14:30:00 -> 2026-01-26 14:30:00
+2026-01-30 20:27:00,249 | DEBUG | yfinance | history.py:339 | META: OHLC after cleaning: 2025-01-27 09:30:00-05:00 -> 2026-01-26 09:30:00-05:00
+2026-01-30 20:27:00,271 | DEBUG | yfinance | history.py:427 | META: OHLC after combining events: 2025-01-27 00:00:00-05:00 -> 2026-01-26 00:00:00-05:00
+2026-01-30 20:27:00,275 | DEBUG | yfinance | history.py:510 | META: yfinance returning OHLC: 2025-01-27 00:00:00-05:00 -> 2026-01-26 00:00:00-05:00
+2026-01-30 20:27:00,275 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-01-30 20:27:00,275 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-01-30 20:27:00,522 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:27:00,522 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:27:00,522 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:27:00,522 | ERROR | my_project | company_service.py:32 | yfinance get_history failed: unconverted data remains:  05:00:00
+Traceback (most recent call last):
+  File "/Users/merhawi/Documents/personal/projects/market-analysis-app/backend/services/company_service.py", line 21, in get_history
+    df = ticker.history(start=start_date, end=end_date, auto_adjust=True)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/base.py", line 129, in history
+    return self._lazy_load_price_history().history(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/scrapers/history.py", line 131, in history
+    start_dt = utils._parse_user_dt(start, tz)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 431, in _parse_user_dt
+    dt = _datetime.datetime.strptime(str(dt), '%Y-%m-%d')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 568, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  05:00:00
+2026-01-30 20:27:00,526 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:00] "POST /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:27:11,784 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:11] "GET /api/companies HTTP/1.1" 200 -
+2026-01-30 20:27:11,792 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:11] "GET /api/companies HTTP/1.1" 200 -
+2026-01-30 20:27:11,793 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:11] "GET /api/watchlist HTTP/1.1" 200 -
+2026-01-30 20:27:11,794 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:11] "GET /api/watchlist HTTP/1.1" 200 -
+2026-01-30 20:27:17,004 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:17] "GET /api/watchlist HTTP/1.1" 200 -
+2026-01-30 20:27:17,018 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:17] "GET /api/watchlist HTTP/1.1" 200 -
+2026-01-30 20:27:32,004 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:32] "OPTIONS /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:27:32,025 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:27:32,026 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:27:32,046 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:27:32,074 | DEBUG | yfinance | history.py:193 | META: Yahoo GET parameters: {'period1': '2024-09-01 00:00:00-04:00', 'period2': '2026-01-18 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-01-30 20:27:32,078 | DEBUG | yfinance | utils.py:92 |   Entering get()
+2026-01-30 20:27:32,078 | DEBUG | yfinance | utils.py:92 |    Entering _make_request()
+2026-01-30 20:27:32,078 | DEBUG | yfinance | data.py:398 | url=https://query2.finance.yahoo.com/v8/finance/chart/META
+2026-01-30 20:27:32,078 | DEBUG | yfinance | data.py:399 | params=frozendict.frozendict({'period1': 1725163200, 'period2': 1768712400, 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'})
+2026-01-30 20:27:32,078 | DEBUG | yfinance | utils.py:92 |     Entering _get_cookie_and_crumb()
+2026-01-30 20:27:32,322 | DEBUG | yfinance | data.py:354 | cookie_mode = 'basic'
+2026-01-30 20:27:32,323 | DEBUG | yfinance | utils.py:92 |      Entering _get_cookie_and_crumb_basic()
+2026-01-30 20:27:32,323 | DEBUG | yfinance | utils.py:92 |       Entering _get_cookie_basic()
+2026-01-30 20:27:32,323 | DEBUG | yfinance | data.py:190 | reusing cookie
+2026-01-30 20:27:32,324 | DEBUG | yfinance | utils.py:97 |       Exiting _get_cookie_basic()
+2026-01-30 20:27:32,324 | DEBUG | yfinance | utils.py:92 |       Entering _get_crumb_basic()
+2026-01-30 20:27:32,324 | DEBUG | yfinance | data.py:214 | reusing crumb
+2026-01-30 20:27:32,324 | DEBUG | yfinance | utils.py:97 |       Exiting _get_crumb_basic()
+2026-01-30 20:27:32,324 | DEBUG | yfinance | utils.py:97 |      Exiting _get_cookie_and_crumb_basic()
+2026-01-30 20:27:32,324 | DEBUG | yfinance | utils.py:97 |     Exiting _get_cookie_and_crumb()
+2026-01-30 20:27:32,538 | DEBUG | yfinance | data.py:437 | response code=200
+2026-01-30 20:27:32,538 | DEBUG | yfinance | utils.py:97 |    Exiting _make_request()
+2026-01-30 20:27:32,538 | DEBUG | yfinance | utils.py:97 |   Exiting get()
+2026-01-30 20:27:32,642 | DEBUG | yfinance | history.py:307 | META: yfinance received OHLC data: 2024-09-03 13:30:00 -> 2026-01-16 14:30:00
+2026-01-30 20:27:32,706 | DEBUG | yfinance | history.py:339 | META: OHLC after cleaning: 2024-09-03 09:30:00-04:00 -> 2026-01-16 09:30:00-05:00
+2026-01-30 20:27:32,784 | DEBUG | yfinance | history.py:427 | META: OHLC after combining events: 2024-09-03 00:00:00-04:00 -> 2026-01-16 00:00:00-05:00
+2026-01-30 20:27:32,795 | DEBUG | yfinance | history.py:510 | META: yfinance returning OHLC: 2024-09-03 00:00:00-04:00 -> 2026-01-16 00:00:00-05:00
+2026-01-30 20:27:32,795 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-01-30 20:27:32,795 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-01-30 20:27:33,217 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-01-30 20:27:33,217 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-01-30 20:27:33,217 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-01-30 20:27:33,217 | ERROR | my_project | company_service.py:32 | yfinance get_history failed: unconverted data remains:  05:00:00
+Traceback (most recent call last):
+  File "/Users/merhawi/Documents/personal/projects/market-analysis-app/backend/services/company_service.py", line 21, in get_history
+    df = ticker.history(start=start_date, end=end_date, auto_adjust=True)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/base.py", line 129, in history
+    return self._lazy_load_price_history().history(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/scrapers/history.py", line 131, in history
+    start_dt = utils._parse_user_dt(start, tz)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/site-packages/yfinance/utils.py", line 431, in _parse_user_dt
+    dt = _datetime.datetime.strptime(str(dt), '%Y-%m-%d')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 568, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/merhawi/anaconda3/lib/python3.11/_strptime.py", line 352, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+ValueError: unconverted data remains:  05:00:00
+2026-01-30 20:27:33,220 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [30/Jan/2026 20:27:33] "POST /api/predict-future HTTP/1.1" 200 -
+2026-01-30 20:31:01,226 | INFO | werkzeug | _internal.py:96 |  * Detected change in '/Users/merhawi/Documents/personal/projects/market-analysis-app/backend/algorithms/ensemble.py', reloading
+2026-01-30 20:31:01,715 | INFO | werkzeug | _internal.py:96 |  * Restarting with stat
+2026-01-30 20:31:05,841 | WARNING | werkzeug | _internal.py:96 |  * Debugger is active!
+2026-01-30 20:31:05,861 | INFO | werkzeug | _internal.py:96 |  * Debugger PIN: 134-698-335

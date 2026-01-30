@@ -145,31 +145,53 @@ class EnsemblePredictor:
         # Fetch "Actual" future data for comparison if it exists
         actual_compare = []
         try:
-            # We need to fetch data after last_date. 
-            # We add a buffer to ensure we get enough days.
+            # We need to fetch data after last_date up to "today".
+            # This allows the user to see actual performance even if the prediction window has passed.
+            today = datetime.datetime.now()
             compare_config = {
                 "startDate": str(last_date + pd.Timedelta(days=1)),
-                "endDate": str(future_dates[-1] + pd.Timedelta(days=5)) # Buffer
+                "endDate": str(today.date())
             }
             df_actual = get_data(compare_config, source)
+            
+            # Identify all unique dates from future_dates and df_actual to build a full comparison series
+            # But the primary goal is to align with the predictions and possibly extend them.
+            
+            # Let's collect ALL dates for the return dict
+            all_comparison_dates = list(future_dates)
             if df_actual is not None:
-                # Align df_actual with future_dates
-                for fd in future_dates:
-                    if fd in df_actual.index:
-                        actual_compare.append(float(df_actual.loc[fd, "Close"]))
-                    else:
-                        actual_compare.append(None)
-            else:
-                actual_compare = [None] * steps
-        except Exception:
-            actual_compare = [None] * steps
+                for d in df_actual.index:
+                    if d not in all_comparison_dates:
+                        all_comparison_dates.append(d)
+            
+            all_comparison_dates = sorted(list(set(all_comparison_dates)))
+            
+            # Build the actual_future series for ALL these dates
+            actual_compare_values = []
+            final_dates = []
+            for fd in all_comparison_dates:
+                val = None
+                if df_actual is not None and fd in df_actual.index:
+                    val = float(df_actual.loc[fd, "Close"])
+                
+                # Only include dates that are in prediction OR have actual data
+                if fd in future_dates or val is not None:
+                    actual_compare_values.append(val)
+                    final_dates.append(str(fd.date()))
+
+            # Update future_dates to include any extended actual data for the chart
+            response_dates = final_dates
+        except Exception as e:
+            print(f"Error fetching actual comparison: {e}")
+            actual_compare_values = [None] * steps
+            response_dates = [str(d.date()) for d in future_dates]
 
         return {
-            "dates": [str(d.date()) for d in future_dates],
+            "dates": response_dates,
             "predictions": results,
             "voting": voting_results,
             "recommendation": recommendation,
-            "actual_future": actual_compare,
+            "actual_future": actual_compare_values,
             "historical": {
                 "dates": [str(d.date()) for d in df.index[-20:]],
                 "prices": [float(p) for p in df["Close"].values[-20:]]
