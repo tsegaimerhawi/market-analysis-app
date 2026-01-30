@@ -7,19 +7,23 @@ A web-based platform to analyze stock data using **10 prediction algorithms**. B
 - **Watchlist** – Save companies by ticker symbol (e.g. AAPL, AMCR). Add/remove from the Watchlist view.
 - **Company info** – For any symbol in your watchlist, view full company data from the system (yfinance: sector, industry, market cap, P/E, dividends, business summary, etc.).
 - **Stock analysis** – Choose a company from your watchlist, set start/end date, select algorithms, and compare results (MAE, RMSE, MAPE, direction accuracy) and charts.
-- **Data source** – Stock data is fetched with the **yfinance** Python library (Yahoo Finance); no CSV upload required for watchlist companies. (CSV upload is still supported for the compare endpoint if you send `dataFile` instead of `symbol`.)
+- **Future Prediction (New!)** – Project future stock prices up to 30 days ahead using an ensemble of models (Linear Regression, Random Forest, XGBoost).
+- **Ensemble Majority Voting** – View a consensus-based market recommendation (Buy/Sell/Hold) derived from the majority vote of independent models.
+- **Ground Truth Visualization** – Compare predictions against actual market data in real-time. If you select a past date, the app overlays the "Actual" price line to verify model accuracy.
 
 ## Project structure
 
 - **backend/**
   - `db.py` – SQLite watchlist DB (add/remove/list companies).
-  - `main.py` – API: `/api/watchlist`, `/api/company/<symbol>`, `/api/compare`, `/api/algorithms`.
-  - `services/company_service.py` – yfinance: history (OHLCV) and full company info.
+  - `main.py` – API: `/api/watchlist`, `/api/company/<symbol>`, `/api/compare`, `/api/predict-future`.
+  - `services/company_service.py` – yfinance integration and full company info.
+  - `algorithms/ensemble.py` – Multi-model ensemble and recursive prediction logic.
   - `algorithms/` – 10 prediction modules (all accept symbol or CSV path).
 - **frontend/**
   - `Watchlist.jsx` – Add/remove companies, view company info.
+  - `FuturePrediction.js` – Ensemble dashboard with charts and voting results.
   - `CompanyInfo.jsx` – Full company info panel (everything from yfinance).
-  - `StockAnalysis.jsx` – Company dropdown (from watchlist), dates, algorithms, results table and chart.
+  - `StockAnalysis.jsx` – Comparison view for baseline models.
 
 ## Run the app
 
@@ -46,4 +50,5 @@ App runs at `http://localhost:3000`.
 ### Usage
 
 1. **Watchlist** – Add companies by symbol (e.g. AAPL, MSFT). Click **Company info** on any row to see full data from the system. Remove with **Remove**.
-2. **Stock Analysis** – Select a company from the dropdown (your watchlist), set **Start date** and **End date**, choose algorithms, then **Compare algorithms**. View the results table and chart (actual vs predicted).
+2. **Stock Analysis** – Select a company from the dropdown, set dates, choose algorithms, then **Compare algorithms**.
+3. **Future Prediction** – Navigate to the **Future Prediction** tab. Select a company and a future date range. Click **Forecast** to view the ensemble consensus, individual model paths, and the majority decision recommendation. If data is available for that period, a "Ground Truth" line will appear for comparison.

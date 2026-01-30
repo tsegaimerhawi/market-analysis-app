@@ -17,6 +17,12 @@ def get_history(symbol, start_date=None, end_date=None):
         logger.debug("yfinance not installed")
         return None
     try:
+        # Strip time if present to prevent yfinance ValueError: unconverted data remains
+        if start_date and len(start_date) > 10:
+            start_date = start_date[:10]
+        if end_date and len(end_date) > 10:
+            end_date = end_date[:10]
+
         ticker = yf.Ticker(symbol)
         df = ticker.history(start=start_date, end=end_date, auto_adjust=True)
         if df is None or df.empty or len(df) < 10:
