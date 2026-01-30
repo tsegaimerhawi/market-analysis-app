@@ -3,6 +3,7 @@ import SideBar from "./SideBar";
 import Watchlist from "./Watchlist";
 import StockAnalysis from "./StockAnalysis";
 import ScrapeArticles from "./ScrapeArticles";
+import FuturePrediction from "./FuturePrediction";
 
 export default function Main() {
   const [activeView, setActiveView] = useState("watchlist");
@@ -15,6 +16,7 @@ export default function Main() {
           {activeView === "watchlist" && <Watchlist />}
           {activeView === "analysis" && <StockAnalysis />}
           {activeView === "scrape" && <ScrapeArticles />}
+          {activeView === "future_prediction" && <FuturePrediction />}
         </div>
       </div>
     </div>

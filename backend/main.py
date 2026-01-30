@@ -8,6 +8,7 @@ from algorithms import ALGORITHMS
 from db import init_db, get_watchlist, add_to_watchlist, remove_from_watchlist
 from services.company_service import get_history, get_info, search as company_search
 from services.article_service import get_newspapers, scrape_articles
+from algorithms.ensemble import run_future_prediction
 
 app = Flask(__name__)
 CORS(app)
@@ -151,6 +152,38 @@ def compare_algorithms():
             })
 
     return jsonify({"results": results})
+
+
+@app.route("/api/predict-future", methods=["POST"])
+def predict_future():
+    """
+    Predict future prices and majority trend.
+    Body: symbol, startDate, endDate, prediction_length, algorithms (optional)
+    """
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get("symbol") or request.form.get("symbol") or "").strip().upper()
+    start_date = data.get("startDate") or request.form.get("startDate") or None
+    end_date = data.get("endDate") or request.form.get("endDate") or None
+    prediction_length = int(data.get("prediction_length") or request.form.get("prediction_length") or 7)
+    algorithms_param = data.get("algorithms") or request.form.get("algorithms")
+    
+    try:
+        algorithm_ids = json.loads(algorithms_param) if isinstance(algorithms_param, str) else (algorithms_param or ["linear_regression", "random_forest", "xgboost"])
+    except json.JSONDecodeError:
+        algorithm_ids = ["linear_regression", "random_forest", "xgboost"]
+
+    if not symbol:
+        return jsonify({"error": "Symbol is required"}), 400
+
+    data_config = {"startDate": start_date, "endDate": end_date}
+    try:
+        result = run_future_prediction(data_config, symbol, steps=prediction_length, algorithms=algorithm_ids)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("Future prediction failed")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/algorithms", methods=["GET"])

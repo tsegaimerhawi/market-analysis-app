@@ -31,6 +31,13 @@ export default function SideBar({ activeView, setActiveView }) {
           >
             Scrape Articles
           </button>
+          <button
+            type="button"
+            className={`nav-link text-start border-0 bg-transparent ${activeView === "future_prediction" ? "active fw-bold" : "text-dark"}`}
+            onClick={() => setActiveView("future_prediction")}
+          >
+            Future Prediction
+          </button>
         </nav>
       </div>
     </div>
