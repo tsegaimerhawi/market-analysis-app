@@ -247,8 +247,6 @@ const FuturePrediction = () => {
 };
 
 export default FuturePrediction;
-
-  useEffect(() => {
     const today = new Date();
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(today.getMonth() - 6);
