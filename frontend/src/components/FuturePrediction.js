@@ -2,24 +2,24 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  FaArrowUp,
-  FaArrowDown,
+              <select
+                multiple
+                size={3}
+                className="form-select algos-select mb-1"
+                value={selectedAlgorithms}
+                onChange={(e) => {
+                  const options = Array.from(e.target.options);
+                  const vals = options.filter((o) => o.selected).map((o) => o.value);
+                  setSelectedAlgorithms(vals);
+                }}
+              >
   FaCalendarAlt,
   FaHistory,
 } from "react-icons/fa";
 import "./FuturePrediction.css";
-
-const FuturePrediction = () => {
-  const [symbol, setSymbol] = useState("");
+              <button type="submit" className="btn btn-primary w-100 fw-bold mt-1 forecast-btn" disabled={loading || !symbol}>
+                {loading ? 'Analyzing…' : 'Forecast'}
+              </button>
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [predictionLength, setPredictionLength] = useState(7);
@@ -40,7 +40,6 @@ const FuturePrediction = () => {
     "random_forest",
     "xgboost",
   ]);
-  const [showAlgoSelector, setShowAlgoSelector] = useState(false);
 
   useEffect(() => {
     const today = new Date();
@@ -187,69 +186,31 @@ const FuturePrediction = () => {
               onChange={(e) => setPredictionLength(e.target.value)}
             />
           </div>
-          <div
-            className="col-md-2 d-flex align-items-end"
-            style={{ position: "relative" }}
-          >
+          <div className="col-md-2 d-flex align-items-end">
             <div style={{ width: "100%" }}>
-              <button
-                type="button"
-                className="btn btn-outline-secondary w-100 mb-2"
-                onClick={() => setShowAlgoSelector(!showAlgoSelector)}
+              <label className="form-label fw-bold">Algorithms</label>
+              <select
+                multiple
+                size={4}
+                className="form-select mb-2"
+                value={selectedAlgorithms}
+                onChange={(e) => {
+                  const options = Array.from(e.target.options);
+                  const vals = options
+                    .filter((o) => o.selected)
+                    .map((o) => o.value);
+                  setSelectedAlgorithms(vals);
+                }}
               >
-                Select Algorithms
-              </button>
-              {showAlgoSelector && (
-                <div
-                  className="algo-dropdown card p-2 shadow-sm"
-                  style={{
-                    position: "absolute",
-                    zIndex: 40,
-                    right: 0,
-                    width: 320,
-                  }}
-                >
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <strong>Algorithms</strong>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-link"
-                      onClick={() => setShowAlgoSelector(false)}
-                    >
-                      Close
-                    </button>
-                  </div>
-                  <div style={{ maxHeight: 200, overflowY: "auto" }}>
-                    {availableAlgorithms.map((a) => (
-                      <div className="form-check" key={a.key}>
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id={`algo-${a.key}`}
-                          checked={selectedAlgorithms.includes(a.key)}
-                          onChange={(e) => {
-                            if (e.target.checked)
-                              setSelectedAlgorithms((prev) => [...prev, a.key]);
-                            else
-                              setSelectedAlgorithms((prev) =>
-                                prev.filter((x) => x !== a.key),
-                              );
-                          }}
-                        />
-                        <label
-                          className="form-check-label"
-                          htmlFor={`algo-${a.key}`}
-                        >
-                          {a.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                {availableAlgorithms.map((a) => (
+                  <option key={a.key} value={a.key}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
               <button
                 type="submit"
-                className="btn btn-primary w-100 fw-bold mt-2"
+                className="btn btn-primary w-100 fw-bold"
                 disabled={loading || !symbol}
               >
                 {loading ? "Analyzing…" : "Forecast"}
@@ -348,25 +309,36 @@ const FuturePrediction = () => {
                       strokeDasharray="5 5"
                       name="Ensemble Consensus"
                     />
-                    {((selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms : Object.keys(result.predictions)).map((algo) => {
+                    {(selectedAlgorithms && selectedAlgorithms.length > 0
+                      ? selectedAlgorithms
+                      : Object.keys(result.predictions)
+                    ).map((algo) => {
                       const strokeMap = {
-                        linear_regression: '#198754',
-                        random_forest: '#fd7e14',
-                        xgboost: '#6f42c1',
-                        gradient_boosting: '#0dcaf0',
-                        svm: '#6c757d',
-                        knn: '#6610f2'
+                        linear_regression: "#198754",
+                        random_forest: "#fd7e14",
+                        xgboost: "#6f42c1",
+                        gradient_boosting: "#0dcaf0",
+                        svm: "#6c757d",
+                        knn: "#6610f2",
                       };
                       const nameMap = {
-                        linear_regression: 'Lin Reg',
-                        random_forest: 'Rand Forest',
-                        xgboost: 'XGBoost',
-                        gradient_boosting: 'Grad Boost',
-                        svm: 'SVM',
-                        knn: 'KNN'
+                        linear_regression: "Lin Reg",
+                        random_forest: "Rand Forest",
+                        xgboost: "XGBoost",
+                        gradient_boosting: "Grad Boost",
+                        svm: "SVM",
+                        knn: "KNN",
                       };
                       return (
-                        <Line key={algo} type="monotone" dataKey={algo} stroke={strokeMap[algo] || '#8884d8'} strokeWidth={1} dot={false} name={nameMap[algo] || algo} />
+                        <Line
+                          key={algo}
+                          type="monotone"
+                          dataKey={algo}
+                          stroke={strokeMap[algo] || "#8884d8"}
+                          strokeWidth={1}
+                          dot={false}
+                          name={nameMap[algo] || algo}
+                        />
                       );
                     })}
                   </LineChart>

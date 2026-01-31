@@ -180,3 +180,17 @@
 .form-check-label {
   margin-left: 0.5rem;
 }
+
+/* Ensure multi-select and button align nicely in the form */
+.prediction-form .algos-select {
+  min-height: 3.2rem;
+  padding: 6px 8px;
+}
+.prediction-form .forecast-btn {
+  margin-top: 6px;
+}
+.prediction-form .col-md-2 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
