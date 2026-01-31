@@ -67,6 +67,21 @@
   transition: all 0.3s ease;
 }
 
+.form-group select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  font-size: 1rem;
+  color: #2c3e50;
+  transition: all 0.3s ease;
+}
+
+.form-group select:hover {
+  border-color: #3498db;
+  background-color: #ecf0f1;
+}
+
 .form-group input:focus, .form-group select:focus {
   border-color: #3498db;
   outline: none;
@@ -83,6 +98,22 @@
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 150px;
+}
+
+.forecast-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #3498db;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.forecast-button:hover {
+  background-color: #2980b9;
 }
 
 .predict-btn:hover {
