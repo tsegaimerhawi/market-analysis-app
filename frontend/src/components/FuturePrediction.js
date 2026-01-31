@@ -94,7 +94,7 @@ const FuturePrediction = () => {
         date: date.slice(0, 10),
         actualCompare: result.actual_future ? result.actual_future[i] : null,
       };
-      const algos = (selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms : Object.keys(result.predictions);
+      const algos = Object.keys(result.predictions);
       algos.forEach((algo) => {
         if (result.predictions[algo]) item[algo] = result.predictions[algo][i];
       });
