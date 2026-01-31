@@ -247,48 +247,6 @@ const FuturePrediction = () => {
 };
 
 export default FuturePrediction;
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import {
-  LineChart,
-              <select
-                multiple
-                size={3}
-                className="form-select algos-select mb-1"
-                value={selectedAlgorithms}
-                onChange={(e) => {
-                  const options = Array.from(e.target.options);
-                  const vals = options.filter((o) => o.selected).map((o) => o.value);
-                  setSelectedAlgorithms(vals);
-                }}
-              >
-  FaCalendarAlt,
-  FaHistory,
-} from "react-icons/fa";
-import "./FuturePrediction.css";
-              <button type="submit" className="btn btn-primary w-100 fw-bold mt-1 forecast-btn" disabled={loading || !symbol}>
-                {loading ? 'Analyzing…' : 'Forecast'}
-              </button>
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [predictionLength, setPredictionLength] = useState(7);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [watchlist, setWatchlist] = useState([]);
-  const availableAlgorithms = [
-    { key: "linear_regression", label: "Linear Regression" },
-    { key: "random_forest", label: "Random Forest" },
-    { key: "xgboost", label: "XGBoost" },
-    { key: "gradient_boosting", label: "Gradient Boosting" },
-    { key: "svm", label: "SVM" },
-    { key: "knn", label: "KNN" },
-  ];
-  const [selectedAlgorithms, setSelectedAlgorithms] = useState([
-    "linear_regression",
-    "random_forest",
-    "xgboost",
-  ]);
 
   useEffect(() => {
     const today = new Date();
