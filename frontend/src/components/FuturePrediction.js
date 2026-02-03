@@ -30,6 +30,8 @@ const FuturePrediction = () => {
     { key: "gradient_boosting", label: "Gradient Boosting" },
     { key: "svm", label: "SVM" },
     { key: "knn", label: "KNN" },
+    { key: "elastic_net", label: "Elastic Net" },
+    { key: "moving_average", label: "Moving Average" },
   ];
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("linear_regression");
   const [showAlgoDropdown, setShowAlgoDropdown] = useState(false);
@@ -233,7 +235,9 @@ const FuturePrediction = () => {
                         xgboost: '#6f42c1',
                         gradient_boosting: '#0dcaf0',
                         svm: '#6c757d',
-                        knn: '#6610f2'
+                        knn: '#6610f2',
+                        elastic_net: '#e83e8c',
+                        moving_average: '#17a2b8'
                       };
                       const nameMap = {
                         linear_regression: 'Lin Reg',
@@ -241,7 +245,9 @@ const FuturePrediction = () => {
                         xgboost: 'XGBoost',
                         gradient_boosting: 'Grad Boost',
                         svm: 'SVM',
-                        knn: 'KNN'
+                        knn: 'KNN',
+                        elastic_net: 'Elastic Net',
+                        moving_average: 'Mov Avg'
                       };
                       return (<Line key={algo} type="monotone" dataKey={algo} stroke={strokeMap[algo] || '#8884d8'} strokeWidth={1} dot={false} name={nameMap[algo] || algo} />);
                     })}
