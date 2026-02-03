@@ -3452,3 +3452,89 @@ ValueError: unconverted data remains:  05:00:00
 2026-02-03 16:25:05,807 | DEBUG | yfinance | utils.py:97 |  Exiting history()
 2026-02-03 16:25:05,807 | DEBUG | yfinance | utils.py:97 | Exiting history()
 2026-02-03 16:25:05,807 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:25:05] "POST /api/predict-future HTTP/1.1" 200 -
+2026-02-03 16:26:42,428 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:42] "GET /api/companies HTTP/1.1" 200 -
+2026-02-03 16:26:42,475 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:42] "GET /api/companies HTTP/1.1" 200 -
+2026-02-03 16:26:42,484 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:42] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:26:42,516 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:42] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:26:44,127 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:44] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:26:44,219 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:44] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:26:45,504 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:45] "GET /api/newspapers HTTP/1.1" 200 -
+2026-02-03 16:26:45,512 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:45] "GET /api/newspapers HTTP/1.1" 200 -
+2026-02-03 16:26:56,043 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:56] "OPTIONS /api/scrape-articles HTTP/1.1" 200 -
+2026-02-03 16:26:57,089 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:26:57] "POST /api/scrape-articles HTTP/1.1" 200 -
+2026-02-03 16:27:02,981 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:27:02] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:27:02,997 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:27:02] "GET /api/watchlist HTTP/1.1" 200 -
+2026-02-03 16:27:06,189 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:27:06] "OPTIONS /api/predict-future HTTP/1.1" 200 -
+2026-02-03 16:27:06,227 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-02-03 16:27:06,237 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['AMZN', 1, 0])
+2026-02-03 16:27:06,244 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-02-03 16:27:06,281 | DEBUG | yfinance | history.py:193 | AMZN: Yahoo GET parameters: {'period1': '2025-08-03 00:00:00-04:00', 'period2': '2026-02-03 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-02-03 16:27:06,352 | DEBUG | yfinance | history.py:307 | AMZN: yfinance received OHLC data: 2025-08-04 13:30:00 -> 2026-02-02 14:30:00
+2026-02-03 16:27:06,399 | DEBUG | yfinance | history.py:339 | AMZN: OHLC after cleaning: 2025-08-04 09:30:00-04:00 -> 2026-02-02 09:30:00-05:00
+2026-02-03 16:27:06,441 | DEBUG | yfinance | history.py:427 | AMZN: OHLC after combining events: 2025-08-04 00:00:00-04:00 -> 2026-02-02 00:00:00-05:00
+2026-02-03 16:27:06,457 | DEBUG | yfinance | history.py:510 | AMZN: yfinance returning OHLC: 2025-08-04 00:00:00-04:00 -> 2026-02-02 00:00:00-05:00
+2026-02-03 16:27:06,458 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-02-03 16:27:06,458 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-02-03 16:27:09,882 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-02-03 16:27:09,884 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['AMZN', 1, 0])
+2026-02-03 16:27:09,884 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-02-03 16:27:09,886 | DEBUG | yfinance | history.py:193 | AMZN: Yahoo GET parameters: {'period1': '2026-02-03 00:00:00-05:00', 'period2': '2026-02-03 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-02-03 16:27:09,887 | ERROR | yfinance | history.py:276 | $AMZN: possibly delisted; no price data found  (1d 2026-02-03 -> 2026-02-03)
+2026-02-03 16:27:09,887 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-02-03 16:27:09,887 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-02-03 16:27:09,895 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:27:09] "POST /api/predict-future HTTP/1.1" 200 -
+2026-02-03 16:28:24,545 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:28:24] "OPTIONS /api/predict-future HTTP/1.1" 200 -
+2026-02-03 16:28:24,623 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-02-03 16:28:24,642 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-02-03 16:28:24,674 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-02-03 16:28:24,721 | DEBUG | yfinance | history.py:193 | META: Yahoo GET parameters: {'period1': '2025-08-03 00:00:00-04:00', 'period2': '2026-02-03 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-02-03 16:28:24,726 | DEBUG | yfinance | utils.py:92 |   Entering get()
+2026-02-03 16:28:24,727 | DEBUG | yfinance | utils.py:92 |    Entering _make_request()
+2026-02-03 16:28:24,728 | DEBUG | yfinance | data.py:398 | url=https://query2.finance.yahoo.com/v8/finance/chart/META
+2026-02-03 16:28:24,729 | DEBUG | yfinance | data.py:399 | params=frozendict.frozendict({'period1': 1754193600, 'period2': 1770094800, 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'})
+2026-02-03 16:28:24,729 | DEBUG | yfinance | utils.py:92 |     Entering _get_cookie_and_crumb()
+2026-02-03 16:28:24,729 | DEBUG | yfinance | data.py:354 | cookie_mode = 'basic'
+2026-02-03 16:28:24,729 | DEBUG | yfinance | utils.py:92 |      Entering _get_cookie_and_crumb_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:92 |       Entering _get_cookie_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | data.py:190 | reusing cookie
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:97 |       Exiting _get_cookie_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:92 |       Entering _get_crumb_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | data.py:214 | reusing crumb
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:97 |       Exiting _get_crumb_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:97 |      Exiting _get_cookie_and_crumb_basic()
+2026-02-03 16:28:24,730 | DEBUG | yfinance | utils.py:97 |     Exiting _get_cookie_and_crumb()
+2026-02-03 16:28:24,978 | DEBUG | yfinance | data.py:437 | response code=200
+2026-02-03 16:28:24,978 | DEBUG | yfinance | utils.py:97 |    Exiting _make_request()
+2026-02-03 16:28:24,978 | DEBUG | yfinance | utils.py:97 |   Exiting get()
+2026-02-03 16:28:25,039 | DEBUG | yfinance | history.py:307 | META: yfinance received OHLC data: 2025-08-04 13:30:00 -> 2026-02-02 14:30:00
+2026-02-03 16:28:25,070 | DEBUG | yfinance | history.py:339 | META: OHLC after cleaning: 2025-08-04 09:30:00-04:00 -> 2026-02-02 09:30:00-05:00
+2026-02-03 16:28:25,197 | DEBUG | yfinance | history.py:427 | META: OHLC after combining events: 2025-08-04 00:00:00-04:00 -> 2026-02-02 00:00:00-05:00
+2026-02-03 16:28:25,213 | DEBUG | yfinance | history.py:510 | META: yfinance returning OHLC: 2025-08-04 00:00:00-04:00 -> 2026-02-02 00:00:00-05:00
+2026-02-03 16:28:25,214 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-02-03 16:28:25,214 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-02-03 16:28:29,563 | DEBUG | yfinance | utils.py:92 | Entering history()
+2026-02-03 16:28:29,566 | DEBUG | peewee | peewee.py:3319 | ('SELECT "t1"."key", "t1"."value" FROM "_tz_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['META', 1, 0])
+2026-02-03 16:28:29,571 | DEBUG | yfinance | utils.py:92 |  Entering history()
+2026-02-03 16:28:29,577 | DEBUG | yfinance | history.py:193 | META: Yahoo GET parameters: {'period1': '2026-02-03 00:00:00-05:00', 'period2': '2026-02-03 00:00:00-05:00', 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2026-02-03 16:28:29,578 | DEBUG | yfinance | utils.py:92 |   Entering get()
+2026-02-03 16:28:29,579 | DEBUG | yfinance | utils.py:92 |    Entering _make_request()
+2026-02-03 16:28:29,579 | DEBUG | yfinance | data.py:398 | url=https://query2.finance.yahoo.com/v8/finance/chart/META
+2026-02-03 16:28:29,579 | DEBUG | yfinance | data.py:399 | params=frozendict.frozendict({'period1': 1770094800, 'period2': 1770094800, 'interval': '1d', 'includePrePost': False, 'events': 'div,splits,capitalGains'})
+2026-02-03 16:28:29,580 | DEBUG | yfinance | utils.py:92 |     Entering _get_cookie_and_crumb()
+2026-02-03 16:28:29,580 | DEBUG | yfinance | data.py:354 | cookie_mode = 'basic'
+2026-02-03 16:28:29,580 | DEBUG | yfinance | utils.py:92 |      Entering _get_cookie_and_crumb_basic()
+2026-02-03 16:28:29,580 | DEBUG | yfinance | utils.py:92 |       Entering _get_cookie_basic()
+2026-02-03 16:28:29,581 | DEBUG | yfinance | data.py:190 | reusing cookie
+2026-02-03 16:28:29,581 | DEBUG | yfinance | utils.py:97 |       Exiting _get_cookie_basic()
+2026-02-03 16:28:29,581 | DEBUG | yfinance | utils.py:92 |       Entering _get_crumb_basic()
+2026-02-03 16:28:29,581 | DEBUG | yfinance | data.py:214 | reusing crumb
+2026-02-03 16:28:29,581 | DEBUG | yfinance | utils.py:97 |       Exiting _get_crumb_basic()
+2026-02-03 16:28:29,581 | DEBUG | yfinance | utils.py:97 |      Exiting _get_cookie_and_crumb_basic()
+2026-02-03 16:28:29,581 | DEBUG | yfinance | utils.py:97 |     Exiting _get_cookie_and_crumb()
+2026-02-03 16:28:29,704 | DEBUG | yfinance | data.py:437 | response code=200
+2026-02-03 16:28:29,705 | DEBUG | yfinance | utils.py:97 |    Exiting _make_request()
+2026-02-03 16:28:29,706 | DEBUG | yfinance | utils.py:97 |   Exiting get()
+2026-02-03 16:28:29,711 | ERROR | yfinance | history.py:276 | $META: possibly delisted; no price data found  (1d 2026-02-03 -> 2026-02-03)
+2026-02-03 16:28:29,713 | DEBUG | yfinance | utils.py:97 |  Exiting history()
+2026-02-03 16:28:29,713 | DEBUG | yfinance | utils.py:97 | Exiting history()
+2026-02-03 16:28:29,735 | INFO | werkzeug | _internal.py:96 | 127.0.0.1 - - [03/Feb/2026 16:28:29] "POST /api/predict-future HTTP/1.1" 200 -

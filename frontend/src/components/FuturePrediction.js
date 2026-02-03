@@ -172,7 +172,7 @@ const FuturePrediction = () => {
               {showAlgoDropdown && (
                 <div
                   className="dropdown-menu show w-100 mt-1"
-                  style={{ position: 'absolute', zIndex: 9999, display: 'block', top: '100%', left: 0 }}
+                  style={{ position: 'absolute', zIndex: 9999, display: 'block', top: '100%', left: 0, pointerEvents: 'auto' }}
                 >
                   {availableAlgorithms.map(algo => (
                     <label key={algo.key} className="dropdown-item d-flex align-items-center gap-2 mb-0 px-3 py-2" style={{ cursor: 'pointer' }}>
@@ -196,7 +196,7 @@ const FuturePrediction = () => {
       {error && <div className="alert alert-danger">{error}</div>}
 
       {result && (
-        <div className="row">
+        <div className="row" style={{ pointerEvents: showAlgoDropdown ? 'none' : 'auto' }}>
           <div className="col-12 mb-4">
             <div className={`card shadow-sm border-0 text-white ${result.recommendation.includes('Buy') ? 'bg-success' : result.recommendation.includes('Sell') ? 'bg-danger' : 'bg-secondary'}`}>
               <div className="card-body d-flex justify-content-between align-items-center py-4">
