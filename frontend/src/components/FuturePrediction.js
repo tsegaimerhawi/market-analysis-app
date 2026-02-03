@@ -31,11 +31,7 @@ const FuturePrediction = () => {
     { key: "svm", label: "SVM" },
     { key: "knn", label: "KNN" },
   ];
-  const [selectedAlgorithms, setSelectedAlgorithms] = useState([
-    "linear_regression",
-    "random_forest",
-    "xgboost",
-  ]);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState("linear_regression");
 
   useEffect(() => {
     const today = new Date();
@@ -71,7 +67,7 @@ const FuturePrediction = () => {
         startDate,
         endDate,
         prediction_length: predictionLength,
-        algorithms: selectedAlgorithms.length > 0 ? selectedAlgorithms : ["linear_regression", "random_forest", "xgboost"],
+        algorithms: [selectedAlgorithm],
       });
       setResult(response.data);
     } catch (err) {
@@ -142,15 +138,11 @@ const FuturePrediction = () => {
 
           <div className="col-md-2 d-flex align-items-end">
             <div style={{ width: '100%' }}>
-              <label className="form-label fw-bold">Algorithms</label>
-              <select multiple size={3} className="form-select algos-select mb-1" value={selectedAlgorithms} onChange={(e) => {
-                const options = Array.from(e.target.options);
-                const vals = options.filter(o => o.selected).map(o => o.value);
-                setSelectedAlgorithms(vals);
-              }}>
+              <label className="form-label fw-bold">Algorithm</label>
+              <select className="form-select" value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
                 {availableAlgorithms.map(a => (<option key={a.key} value={a.key}>{a.label}</option>))}
               </select>
-              <button type="submit" className="btn btn-primary w-100 fw-bold mt-1 forecast-btn" disabled={loading || !symbol}>{loading ? 'Analyzing…' : 'Forecast'}</button>
+              <button type="submit" className="btn btn-primary w-100 fw-bold mt-2 forecast-btn" disabled={loading || !symbol}>{loading ? 'Analyzing…' : 'Forecast'}</button>
             </div>
           </div>
         </form>
@@ -165,7 +157,7 @@ const FuturePrediction = () => {
               <div className="card-body d-flex justify-content-between align-items-center py-4">
                 <div>
                   <h4 className="mb-1 fw-bold">Ensemble Majority Decision</h4>
-                  <p className="mb-0 opacity-75">Based on a majority vote of {(selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms.length : Object.keys(result.predictions).length} independent models</p>
+                  <p className="mb-0 opacity-75">Based on {selectedAlgorithm ? availableAlgorithms.find(a => a.key === selectedAlgorithm)?.label : 'Selected'} algorithm</p>
                 </div>
                 <div className="text-end">
                   <h2 className="mb-0 fw-bold text-uppercase">{result.recommendation}</h2>
@@ -189,7 +181,7 @@ const FuturePrediction = () => {
                     <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
                     <Line type="monotone" dataKey="actualCompare" stroke="#212529" strokeWidth={3} name="Actual (Ground Truth)" strokeDasharray="3 3" dot={true} />
                     <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Ensemble Consensus" />
-                    {((selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms : Object.keys(result.predictions)).map((algo) => {
+                    {((selectedAlgorithm) ? [selectedAlgorithm] : Object.keys(result.predictions)).map((algo) => {
                       const strokeMap = {
                         linear_regression: '#198754',
                         random_forest: '#fd7e14',
