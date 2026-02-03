@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   LineChart,
@@ -32,6 +32,9 @@ const FuturePrediction = () => {
     { key: "knn", label: "KNN" },
   ];
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("linear_regression");
+  const [showAlgoDropdown, setShowAlgoDropdown] = useState(false);
+  const [selectedAlgorithms, setSelectedAlgorithms] = useState(["linear_regression", "random_forest", "xgboost"]);
+  const algoDropdownRef = useRef(null);
 
   useEffect(() => {
     const today = new Date();
@@ -55,6 +58,24 @@ const FuturePrediction = () => {
     }
   };
 
+  const toggleAlgorithm = (algoKey) => {
+    setSelectedAlgorithms(prev => 
+      prev.includes(algoKey) 
+        ? prev.filter(a => a !== algoKey) 
+        : [...prev, algoKey]
+    );
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (algoDropdownRef.current && !algoDropdownRef.current.contains(event.target)) {
+        setShowAlgoDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handlePredict = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -67,7 +88,7 @@ const FuturePrediction = () => {
         startDate,
         endDate,
         prediction_length: predictionLength,
-        algorithms: [selectedAlgorithm],
+        algorithms: selectedAlgorithms.length > 0 ? selectedAlgorithms : ["linear_regression"],
       });
       setResult(response.data);
     } catch (err) {
@@ -137,12 +158,36 @@ const FuturePrediction = () => {
           </div>
 
           <div className="col-md-2 d-flex align-items-end">
-            <div style={{ width: '100%' }}>
-              <label className="form-label fw-bold">Algorithm</label>
-              <select className="form-select" value={selectedAlgorithm} onChange={(e) => setSelectedAlgorithm(e.target.value)}>
-                {availableAlgorithms.map(a => (<option key={a.key} value={a.key}>{a.label}</option>))}
-              </select>
-              <button type="submit" className="btn btn-primary w-100 fw-bold mt-2 forecast-btn" disabled={loading || !symbol}>{loading ? 'Analyzing…' : 'Forecast'}</button>
+            <div style={{ width: '100%' }} ref={algoDropdownRef}>
+              <label className="form-label fw-bold">Algorithms</label>
+              <button
+                type="button"
+                className="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                onClick={() => setShowAlgoDropdown(!showAlgoDropdown)}
+                style={{ textAlign: 'left' }}
+              >
+                <span>{selectedAlgorithms.length} selected</span>
+                <span style={{ fontSize: '0.8rem' }}>▼</span>
+              </button>
+              {showAlgoDropdown && (
+                <div
+                  className="dropdown-menu show w-100 mt-1"
+                  style={{ position: 'absolute', zIndex: 1000, display: 'block' }}
+                >
+                  {availableAlgorithms.map(algo => (
+                    <label key={algo.key} className="dropdown-item d-flex align-items-center gap-2 mb-0 px-3 py-2" style={{ cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedAlgorithms.includes(algo.key)}
+                        onChange={() => toggleAlgorithm(algo.key)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>{algo.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <button type="submit" className="btn btn-primary w-100 fw-bold mt-2 forecast-btn" disabled={loading || !symbol || selectedAlgorithms.length === 0}>{loading ? 'Analyzing…' : 'Forecast'}</button>
             </div>
           </div>
         </form>
@@ -157,7 +202,7 @@ const FuturePrediction = () => {
               <div className="card-body d-flex justify-content-between align-items-center py-4">
                 <div>
                   <h4 className="mb-1 fw-bold">Ensemble Majority Decision</h4>
-                  <p className="mb-0 opacity-75">Based on {selectedAlgorithm ? availableAlgorithms.find(a => a.key === selectedAlgorithm)?.label : 'Selected'} algorithm</p>
+                  <p className="mb-0 opacity-75">Based on a majority vote of {selectedAlgorithms.length} independent models</p>
                 </div>
                 <div className="text-end">
                   <h2 className="mb-0 fw-bold text-uppercase">{result.recommendation}</h2>
@@ -181,7 +226,7 @@ const FuturePrediction = () => {
                     <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
                     <Line type="monotone" dataKey="actualCompare" stroke="#212529" strokeWidth={3} name="Actual (Ground Truth)" strokeDasharray="3 3" dot={true} />
                     <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Ensemble Consensus" />
-                    {((selectedAlgorithm) ? [selectedAlgorithm] : Object.keys(result.predictions)).map((algo) => {
+                    {((selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms : Object.keys(result.predictions)).map((algo) => {
                       const strokeMap = {
                         linear_regression: '#198754',
                         random_forest: '#fd7e14',
