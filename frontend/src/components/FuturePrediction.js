@@ -130,8 +130,8 @@ const FuturePrediction = () => {
       <h1 className="mb-4">Future Prediction</h1>
       <p className="text-muted mb-4">Project future market trends using ensemble models and majority voting consensus.</p>
 
-      <div className="card card-body mb-4 shadow-sm border-0 bg-light">
-        <form onSubmit={handlePredict} className="prediction-form row g-3">
+      <div className="card card-body mb-4 shadow-sm border-0 bg-light" style={{ overflow: 'visible' }}>
+        <form onSubmit={handlePredict} className="prediction-form row g-3" style={{ position: 'relative' }}>
           <div className="col-md-4">
             <label className="form-label fw-bold">Company</label>
             <select className="form-select" value={symbol} onChange={(e) => setSymbol(e.target.value)} required>
@@ -158,7 +158,7 @@ const FuturePrediction = () => {
           </div>
 
           <div className="col-md-2 d-flex align-items-end">
-            <div style={{ width: '100%', position: 'relative' }} ref={algoDropdownRef}>
+            <div style={{ width: '100%', position: 'relative', zIndex: 1100 }} ref={algoDropdownRef}>
               <label className="form-label fw-bold">Algorithms</label>
               <button
                 type="button"
@@ -172,7 +172,7 @@ const FuturePrediction = () => {
               {showAlgoDropdown && (
                 <div
                   className="dropdown-menu show w-100 mt-1"
-                  style={{ position: 'absolute', zIndex: 1050, display: 'block' }}
+                  style={{ position: 'absolute', zIndex: 2000, display: 'block', top: '100%' }}
                 >
                   {availableAlgorithms.map(algo => (
                     <label key={algo.key} className="dropdown-item d-flex align-items-center gap-2 mb-0 px-3 py-2" style={{ cursor: 'pointer' }}>
