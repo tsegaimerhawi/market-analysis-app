@@ -1,45 +1,64 @@
-import React from "react";
+import React, { useState } from "react";
+import { FaBook } from "react-icons/fa";
+import AlgorithmTutorials from "./AlgorithmTutorials";
 
 export default function SideBar({ activeView, setActiveView }) {
+  const [showTutorials, setShowTutorials] = useState(false);
+
   return (
-    <div
-      className="bg-light border-end"
-      style={{ minHeight: "100vh", width: "200px" }}
-    >
-      <div className="p-3">
-        <h5 className="text-secondary mb-0">Market Analysis</h5>
-        <hr />
-        <nav className="nav flex-column">
+    <>
+      <div
+        className="bg-light border-end"
+        style={{ minHeight: "100vh", width: "200px" }}
+      >
+        <div className="p-3">
+          <h5 className="text-secondary mb-0">Market Analysis</h5>
+          <hr />
+          <nav className="nav flex-column">
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent ${activeView === "watchlist" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("watchlist")}
+            >
+              Watchlist
+            </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent ${activeView === "analysis" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("analysis")}
+            >
+              Stock Analysis
+            </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent ${activeView === "scrape" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("scrape")}
+            >
+              Scrape Articles
+            </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent ${activeView === "future_prediction" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("future_prediction")}
+            >
+              Future Prediction
+            </button>
+          </nav>
+
+          <hr />
+          <h6 className="text-secondary mb-3">Resources</h6>
           <button
             type="button"
-            className={`nav-link text-start border-0 bg-transparent ${activeView === "watchlist" ? "active fw-bold" : "text-dark"}`}
-            onClick={() => setActiveView("watchlist")}
+            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
+            onClick={() => setShowTutorials(true)}
           >
-            Watchlist
+            <FaBook />
+            Algorithm Tutorials
           </button>
-          <button
-            type="button"
-            className={`nav-link text-start border-0 bg-transparent ${activeView === "analysis" ? "active fw-bold" : "text-dark"}`}
-            onClick={() => setActiveView("analysis")}
-          >
-            Stock Analysis
-          </button>
-          <button
-            type="button"
-            className={`nav-link text-start border-0 bg-transparent ${activeView === "scrape" ? "active fw-bold" : "text-dark"}`}
-            onClick={() => setActiveView("scrape")}
-          >
-            Scrape Articles
-          </button>
-          <button
-            type="button"
-            className={`nav-link text-start border-0 bg-transparent ${activeView === "future_prediction" ? "active fw-bold" : "text-dark"}`}
-            onClick={() => setActiveView("future_prediction")}
-          >
-            Future Prediction
-          </button>
-        </nav>
+        </div>
       </div>
-    </div>
+
+      <AlgorithmTutorials isOpen={showTutorials} onClose={() => setShowTutorials(false)} />
+    </>
   );
 }
