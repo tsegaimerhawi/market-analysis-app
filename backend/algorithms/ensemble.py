@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, VotingRegressor
 from xgboost import XGBRegressor
 import datetime
+from utils.logger import logger
 
 def clean_symbol(symbol):
     """Strip $ and whitespace."""
@@ -182,7 +183,7 @@ class EnsemblePredictor:
             # Update future_dates to include any extended actual data for the chart
             response_dates = final_dates
         except Exception as e:
-            print(f"Error fetching actual comparison: {e}")
+            logger.exception("Error fetching actual comparison: %s", e)
             actual_compare_values = [None] * steps
             response_dates = [str(d.date()) for d in future_dates]
 

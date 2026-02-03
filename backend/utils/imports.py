@@ -13,4 +13,6 @@ import seaborn as sns
 
 
 UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+def ensure_uploads_dir():
+    """Create the uploads directory when needed (avoid side-effects at import)."""
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)

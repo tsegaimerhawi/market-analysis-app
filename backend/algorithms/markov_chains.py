@@ -45,7 +45,7 @@ def compute_steady_state(trans_matrix, iterations=200):
     try:
         P_final = np.linalg.matrix_power(P_work, iterations)
     except np.linalg.LinAlgError as e:
-        print(f"Error during matrix_power: {e}. Returning NaN steady state.")
+        logger.exception("Error during matrix_power; returning NaN steady state.")
         return np.full(n_states, np.nan)
 
     steady_state_vector = P_final[0, :]
@@ -54,16 +54,14 @@ def compute_steady_state(trans_matrix, iterations=200):
         np.isclose(np.sum(steady_state_vector), 1.0)
         and np.all(steady_state_vector >= -1e-9)
     ):
-        print(
-            f"Warning: Steady-state vector from P_final[0,:] (sum={np.sum(steady_state_vector)}) is problematic. Checking other rows or returning NaN."
-        )
+        logger.warning("Warning: Steady-state vector from P_final[0,:] (sum=%s) is problematic. Checking other rows or returning NaN.", np.sum(steady_state_vector))
         for r_idx in range(1, n_states):
             row_vec = P_final[r_idx, :]
             if np.isclose(np.sum(row_vec), 1.0) and np.all(row_vec >= -1e-9):
-                print(f"Using row {r_idx} from P_final for steady state.")
+                logger.info("Using row %s from P_final for steady state.", r_idx)
                 return np.maximum(0, row_vec)
 
-        print("Could not find a valid steady-state vector in P_final rows.")
+        logger.warning("Could not find a valid steady-state vector in P_final rows.")
         return np.full(n_states, np.nan)
 
     return np.maximum(0, steady_state_vector)
@@ -90,9 +88,7 @@ def create_states(prices, n_states=5):
                 duplicates="drop",
             )
     except ValueError:
-        print(
-            f"Warning: Could not discretize states using cut or qcut for {n_states} states. Trying with fewer bins if possible or failing."
-        )
+        logger.warning("Warning: Could not discretize states using cut or qcut for %s states. Trying with fewer bins if possible or failing.", n_states)
         try:
             num_unique_pct = len(np.unique(percent_change_values))
             bins_to_try = min(n_states, num_unique_pct) if num_unique_pct > 0 else 1
@@ -111,10 +107,10 @@ def create_states(prices, n_states=5):
                 )
 
             else:
-                print("Warning: No price variation to create states.")
+                logger.warning("No price variation to create states.")
                 return pd.Series(dtype=int)
         except Exception as e_fallback:
-            print(f"ERROR: Fallback state creation failed: {e_fallback}")
+            logger.exception("Fallback state creation failed: %s", e_fallback)
             return pd.Series(dtype=int)
 
     if isinstance(states_cat, pd.Series):
@@ -216,9 +212,9 @@ def run_algorithm(data, csv_file_name):
                 state_labels[:n_markov_states], steady_state_probs
             ):
                 if pd.notna(prob):
-                    print(f"- {state_lbl:<12}: {prob:.2%}")
+                    logger.info(f"- {state_lbl:<12}: {prob:.2%}")
                 else:
-                    print(f"- {state_lbl:<12}: N/A")
+                    logger.info(f"- {state_lbl:<12}: N/A")
         else:
             logger.debug("\nCould not compute a valid steady-state distribution.")
     else:

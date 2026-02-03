@@ -4,7 +4,6 @@ from pathlib import Path
 # Logs directory
 log_dir = Path("logs")
 log_dir.mkdir(exist_ok=True)
-print(log_dir / "app.log")
 log_file = log_dir / "app.log"
 
 # Formatter string

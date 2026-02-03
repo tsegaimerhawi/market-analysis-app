@@ -11,7 +11,6 @@ from algorithms.ensemble import EnsemblePredictor, clean_symbol
 def test_clean_symbol():
     assert clean_symbol("$AAPL") == "AAPL"
     assert clean_symbol("  msft  ") == "MSFT"
-    print("clean_symbol test passed!")
 
 def test_recursive_prediction_logic():
     # Mock model
@@ -28,10 +27,8 @@ def test_recursive_prediction_logic():
     # We need to set feature_names manually for test or use run_ensemble
     preds = predictor.predict_recursive(MockModel(), last_window, steps)
     
-    print(f"Mock Predictions: {preds}")
     assert len(preds) == steps
     assert preds[0] > 104.0
-    print("predict_recursive test passed!")
 
 if __name__ == "__main__":
     test_clean_symbol()
