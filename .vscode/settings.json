@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^bash -lc \"perl -0777 -pe 's/UPLOAD_FOLDER = \\\\\"uploads\\\\\"\\\\n\\\\s\\*os\\.makedirs\\\\\\(UPLOAD_FOLDER, exist_ok=True\\\\\\)\\\\n/UPLOAD_FOLDER = \\\\\"uploads\\\\\"\\\\ndef ensure_uploads_dir\\(\\):\\\\n    \\\\\"\\\\\"\\\\\"Create the uploads directory when needed \\(avoid side-effects at import\\)\\.\\\\\"\\\\\"\\\\\"\\\\n    os\\.makedirs\\(UPLOAD_FOLDER, exist_ok=True\\)\\\\n/s' -i /Users/merhawi/Documents/personal/projects/market-analysis-app/backend/utils/imports\\.py && echo patched \\|\\| echo nochange\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

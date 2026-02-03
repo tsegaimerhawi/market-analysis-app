@@ -158,7 +158,7 @@ const FuturePrediction = () => {
           </div>
 
           <div className="col-md-2 d-flex align-items-end">
-            <div style={{ width: '100%', position: 'relative', zIndex: 1100 }} ref={algoDropdownRef}>
+            <div style={{ width: '100%', position: 'relative', zIndex: 9999 }} ref={algoDropdownRef}>
               <label className="form-label fw-bold">Algorithms</label>
               <button
                 type="button"
@@ -172,7 +172,7 @@ const FuturePrediction = () => {
               {showAlgoDropdown && (
                 <div
                   className="dropdown-menu show w-100 mt-1"
-                  style={{ position: 'absolute', zIndex: 2000, display: 'block', top: '100%' }}
+                  style={{ position: 'absolute', zIndex: 9999, display: 'block', top: '100%', left: 0 }}
                 >
                   {availableAlgorithms.map(algo => (
                     <label key={algo.key} className="dropdown-item d-flex align-items-center gap-2 mb-0 px-3 py-2" style={{ cursor: 'pointer' }}>
