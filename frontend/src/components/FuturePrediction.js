@@ -41,10 +41,12 @@ const FuturePrediction = () => {
 
   useEffect(() => {
     const today = new Date();
-    const sixMonthsAgo = new Date();
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(today.getDate() - 2);
+    const sixMonthsAgo = new Date(today);
     sixMonthsAgo.setMonth(today.getMonth() - 6);
 
-    setEndDate(today.toISOString().split("T")[0]);
+    setEndDate(twoDaysAgo.toISOString().split("T")[0]);
     setStartDate(sixMonthsAgo.toISOString().split("T")[0]);
 
     fetchWatchlist();
@@ -81,6 +83,7 @@ const FuturePrediction = () => {
 
   const handlePredict = async (e) => {
     e.preventDefault();
+    setShowAlgoDropdown(false);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -133,7 +136,10 @@ const FuturePrediction = () => {
       <h1 className="mb-4">Future Prediction</h1>
       <p className="text-muted mb-4">Project future market trends using ensemble models and majority voting consensus.</p>
 
-      <div className="card card-body mb-4 shadow-sm border-0 bg-light" style={{ overflow: 'visible' }}>
+      <div
+        className="card card-body mb-4 shadow-sm border-0 bg-light"
+        style={{ overflow: 'visible', position: 'relative', zIndex: showAlgoDropdown ? 10 : undefined }}
+      >
         <form onSubmit={handlePredict} className="prediction-form row g-3" style={{ position: 'relative' }}>
           <div className="col-md-4">
             <label className="form-label fw-bold">Company</label>
@@ -199,7 +205,7 @@ const FuturePrediction = () => {
       {error && <div className="alert alert-danger">{error}</div>}
 
       {result && (
-        <div className="row" style={{ pointerEvents: showAlgoDropdown ? 'none' : 'auto' }}>
+        <div className="row">
           <div className="col-12 mb-4">
             <div className={`card shadow-sm border-0 text-white ${result.recommendation.includes('Buy') ? 'bg-success' : result.recommendation.includes('Sell') ? 'bg-danger' : 'bg-secondary'}`}>
               <div className="card-body d-flex justify-content-between align-items-center py-4">
@@ -218,6 +224,7 @@ const FuturePrediction = () => {
           <div className="col-lg-8 mb-4">
             <div className="card card-body h-100 shadow-sm border-0">
               <h5 className="card-title mb-4 fw-bold text-dark"><FaHistory className="me-2 text-primary" /> Price Forecast</h5>
+              <p className="small text-muted mb-3">End date is set to 2 days before today so you can compare predictions to actual prices. <strong>Actual (stock)</strong> appears when real market data exists for the forecast dates.</p>
               <div style={{ width: '100%', height: 400 }}>
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={chartData}>
@@ -226,9 +233,9 @@ const FuturePrediction = () => {
                     <YAxis domain={["auto", "auto"]} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                     <Legend />
-                    <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={3} name="Historical" dot={false} />
-                    <Line type="monotone" dataKey="actualCompare" stroke="#212529" strokeWidth={3} name="Actual (Ground Truth)" strokeDasharray="3 3" dot={true} />
-                    <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={3} strokeDasharray="5 5" name="Ensemble Consensus" />
+                    <Line type="monotone" dataKey="historical" stroke="#0d6efd" strokeWidth={2} name="Historical" dot={false} />
+                    <Line type="monotone" dataKey="actualCompare" stroke="#198754" strokeWidth={3} name="Actual (stock)" strokeDasharray="5 5" dot={true} connectNulls={false} />
+                    <Line type="monotone" dataKey="consensus" stroke="#ffc107" strokeWidth={2} strokeDasharray="5 5" name="Ensemble Consensus" />
                     {((selectedAlgorithms && selectedAlgorithms.length > 0) ? selectedAlgorithms : Object.keys(result.predictions)).map((algo) => {
                       const strokeMap = {
                         linear_regression: '#198754',

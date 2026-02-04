@@ -213,8 +213,8 @@ class EnsemblePredictor:
             "recommendation": recommendation,
             "actual_future": actual_compare_values,
             "historical": {
-                "dates": [str(d.date()) for d in df.index[-20:]],
-                "prices": [float(p) for p in df["Close"].values[-20:]]
+                "dates": [str(d.date()) for d in df.index],
+                "prices": [float(p) for p in df["Close"].values]
             }
         }
 
