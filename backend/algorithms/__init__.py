@@ -10,6 +10,7 @@ from algorithms import (
     gradient_boosting,
     moving_average,
     elastic_net,
+    lstm,
 )
 
 ALGORITHMS = {
@@ -23,4 +24,5 @@ ALGORITHMS = {
     "gradient_boosting": ("Gradient Boosting", gradient_boosting.run_algorithm),
     "moving_average": ("Moving Average", moving_average.run_algorithm),
     "elastic_net": ("Elastic Net", elastic_net.run_algorithm),
+    "lstm": ("LSTM", lstm.run_algorithm),
 }

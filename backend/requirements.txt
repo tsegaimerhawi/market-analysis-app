@@ -5,5 +5,6 @@ flask-cors
 scikit-learn
 statsmodels
 xgboost
+tensorflow
 yfinance
 feedparser

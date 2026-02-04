@@ -105,6 +105,25 @@ class EnsemblePredictor:
                     preds = self.predict_recursive(model, df["Close"].values[-n_lags:], steps, n_lags)
                     results[algo_id] = [float(p) for p in preds]
                     all_preds.append([float(p) for p in preds])
+            elif algo_id == "lstm":
+                try:
+                    from algorithms.lstm import (
+                        build_sequences,
+                        _get_keras_model,
+                        predict_future_steps,
+                        SEQ_LEN as lstm_seq_len,
+                    )
+                    series = df["Close"]
+                    X, y, _ = build_sequences(series, lstm_seq_len)
+                    if X is not None and len(X) >= 20:
+                        model = _get_keras_model(lstm_seq_len)
+                        model.fit(X, y, epochs=30, batch_size=min(32, len(X)), verbose=0)
+                        last_prices = df["Close"].values[-lstm_seq_len:]
+                        preds = predict_future_steps(model, last_prices, steps, lstm_seq_len)
+                        results[algo_id] = [float(p) for p in preds]
+                        all_preds.append([float(p) for p in preds])
+                except Exception as e:
+                    logger.warning("LSTM future prediction skipped: %s", e)
 
         if not all_preds:
             return {"error": f"Insufficient data to train models for {source}. Try a longer date range."}

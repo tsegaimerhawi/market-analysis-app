@@ -9,6 +9,7 @@ const AlgorithmTutorials = ({ isOpen, onClose }) => {
     linear: "Linear & simple",
     ensemble: "Tree & ensemble",
     other: "Other methods",
+    deep: "Deep learning",
   };
 
   const tutorials = {
@@ -220,10 +221,39 @@ const AlgorithmTutorials = ({ isOpen, onClose }) => {
       parameters: ["k (number of neighbors)", "Distance metric", "Feature set and scaling"],
       proTip: "Use a smaller k for more responsive, noisier predictions; larger k for smoother, more stable forecasts. Compare with Moving Average for a different kind of “recent history” baseline.",
     },
+    lstm: {
+      name: "LSTM (Long Short-Term Memory)",
+      category: "deep",
+      tagline: "A recurrent neural network that learns from sequences of past prices to predict the next value.",
+      description: "LSTM is a type of recurrent neural network designed to capture long-range dependencies in time series. It processes a fixed-length window of past prices (e.g. 20 days) and outputs a single next-day prediction. The model learns patterns in the sequence itself, not just lags.",
+      howItWorks: [
+        "Takes a sequence of past closing prices (e.g. last 20 days) as input",
+        "Each time step is fed through LSTM cells that maintain a hidden state (memory)",
+        "The network learns which past patterns predict the next price",
+        "Trained to minimize mean squared error between predicted and actual next-day price",
+        "For multi-step forecasts, predictions are fed back as the next input (recursive prediction)"
+      ],
+      strengths: [
+        "Can capture temporal patterns and long-range dependencies in price history",
+        "No hand-crafted features: learns from raw (or normalized) price sequences",
+        "Often strong on noisy time series when enough data is available",
+        "Flexible: more layers or units can increase capacity"
+      ],
+      weaknesses: [
+        "Requires more data and longer training than classical ML; risk of overfitting on small history",
+        "Slower to train and tune; needs TensorFlow and more compute",
+        "Less interpretable than linear or tree models",
+        "Sensitive to sequence length and hyperparameters (units, epochs)"
+      ],
+      useCase: "Best when you have a long history (e.g. 1+ year) and believe that the order and pattern of past prices matter beyond simple lags.",
+      example: "Given the last 20 daily closes [100, 101, 99, …], the LSTM outputs one number for the next day; for 7-day ahead you run it 7 times, feeding each prediction back into the window.",
+      parameters: ["Sequence length (e.g. 20)", "LSTM units", "Epochs", "Batch size"],
+      proTip: "In Stock Analysis, compare LSTM’s MAE/RMSE with XGBoost and Linear Regression. In Future Prediction, include LSTM in the ensemble to add a deep-learning vote to the majority trend.",
+    },
   };
 
   const algo = tutorials[selectedAlgo];
-  const orderByCategory = ["linear", "ensemble", "other"];
+  const orderByCategory = ["linear", "ensemble", "other", "deep"];
   const entriesByCategory = orderByCategory.map((cat) => ({
     category: cat,
     label: CATEGORIES[cat],
