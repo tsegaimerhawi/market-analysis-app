@@ -8,37 +8,37 @@ export default function SideBar({ activeView, setActiveView }) {
   return (
     <>
       <div
-        className="bg-light border-end"
-        style={{ minHeight: "100vh", width: "200px" }}
+        className="bg-light border-end flex-shrink-0"
+        style={{ minHeight: "100vh", width: "220px" }}
       >
         <div className="p-3">
           <h5 className="text-secondary mb-0">Market Analysis</h5>
           <hr />
-          <nav className="nav flex-column">
+          <nav className="nav flex-column gap-1">
             <button
               type="button"
-              className={`nav-link text-start border-0 bg-transparent ${activeView === "watchlist" ? "active fw-bold" : "text-dark"}`}
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "watchlist" ? "active fw-bold" : "text-dark"}`}
               onClick={() => setActiveView("watchlist")}
             >
               Watchlist
             </button>
             <button
               type="button"
-              className={`nav-link text-start border-0 bg-transparent ${activeView === "analysis" ? "active fw-bold" : "text-dark"}`}
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "analysis" ? "active fw-bold" : "text-dark"}`}
               onClick={() => setActiveView("analysis")}
             >
               Stock Analysis
             </button>
             <button
               type="button"
-              className={`nav-link text-start border-0 bg-transparent ${activeView === "scrape" ? "active fw-bold" : "text-dark"}`}
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "scrape" ? "active fw-bold" : "text-dark"}`}
               onClick={() => setActiveView("scrape")}
             >
               Scrape Articles
             </button>
             <button
               type="button"
-              className={`nav-link text-start border-0 bg-transparent ${activeView === "future_prediction" ? "active fw-bold" : "text-dark"}`}
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "future_prediction" ? "active fw-bold" : "text-dark"}`}
               onClick={() => setActiveView("future_prediction")}
             >
               Future Prediction

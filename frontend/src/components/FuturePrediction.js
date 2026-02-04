@@ -218,7 +218,7 @@ const FuturePrediction = () => {
             <div className="card card-body h-100 shadow-sm border-0">
               <h5 className="card-title mb-4 fw-bold text-dark"><FaHistory className="me-2 text-primary" /> Price Forecast</h5>
               <div style={{ width: '100%', height: 400 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} />

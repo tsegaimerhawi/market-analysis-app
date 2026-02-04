@@ -50,7 +50,7 @@ export default function ScrapeArticles() {
       <p className="text-muted mb-4">Choose a news source and date range to fetch recent articles for market research.</p>
 
       <form onSubmit={handleSubmit} className="card card-body mb-4">
-        <h2 className="h5 mb-3">Scrape Articles</h2>
+        <h2 className="h5 mb-3">Search criteria</h2>
         <div className="row g-3">
           <div className="col-md-6">
             <label className="form-label">Newspaper:</label>

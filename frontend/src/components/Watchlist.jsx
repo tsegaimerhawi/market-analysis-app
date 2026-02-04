@@ -115,14 +115,14 @@ export default function Watchlist() {
       ) : (
         <ul className="list-group mb-4">
           {watchlist.map((item) => (
-            <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
-              <span>
+            <li key={item.id} className="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+              <span className="flex-grow-1">
                 <strong>{item.symbol}</strong>
                 {item.company_name && item.company_name !== item.symbol && (
                   <span className="text-muted ms-2">{item.company_name}</span>
                 )}
               </span>
-              <span>
+              <span className="d-flex flex-wrap gap-1">
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-primary me-1"
