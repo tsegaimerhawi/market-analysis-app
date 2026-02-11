@@ -93,7 +93,7 @@ export default function Portfolio() {
     );
   }
 
-  const { cash_balance, positions = [], orders = [] } = portfolio;
+  const { cash_balance, initial_balance = 100000, positions = [], orders = [] } = portfolio;
   const positionsValue = positions.reduce((sum, p) => {
     const qty = parseFloat(p.quantity);
     const mkt = prices[p.symbol];
@@ -101,6 +101,7 @@ export default function Portfolio() {
     return sum + qty * (mkt != null ? mkt : cost);
   }, 0);
   const totalValue = cash_balance + positionsValue;
+  const returnPct = initial_balance > 0 ? ((totalValue - initial_balance) / initial_balance) * 100 : 0;
 
   return (
     <div className="portfolio">
@@ -209,6 +210,9 @@ export default function Portfolio() {
               <div>
                 <div className="text-muted small text-uppercase">Total value</div>
                 <div className="fw-bold fs-4">{formatMoney(totalValue)}</div>
+                <div className={`small ${returnPct >= 0 ? "text-success" : "text-danger"}`}>
+                  Total return {returnPct >= 0 ? "+" : ""}{returnPct.toFixed(2)}%
+                </div>
               </div>
             </div>
           </div>

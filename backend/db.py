@@ -28,6 +28,13 @@ def init_db():
             )
         """)
         conn.execute("INSERT OR IGNORE INTO account (id, cash_balance) VALUES (1, ?)", (DEFAULT_PAPER_CASH,))
+        try:
+            conn.execute("ALTER TABLE account ADD COLUMN initial_balance REAL DEFAULT ?", (DEFAULT_PAPER_CASH,))
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        conn.execute("UPDATE account SET initial_balance = ? WHERE id = 1 AND initial_balance IS NULL", (DEFAULT_PAPER_CASH,))
+        conn.commit()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS portfolio (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,6 +122,15 @@ def get_cash_balance():
     with _conn() as conn:
         row = conn.execute("SELECT cash_balance FROM account WHERE id = 1").fetchone()
         return float(row["cash_balance"]) if row else DEFAULT_PAPER_CASH
+
+
+def get_initial_balance():
+    """Return the initial/starting balance used for performance calculation (set on reset)."""
+    with _conn() as conn:
+        row = conn.execute("SELECT initial_balance FROM account WHERE id = 1").fetchone()
+        if row and row["initial_balance"] is not None:
+            return float(row["initial_balance"])
+        return DEFAULT_PAPER_CASH
 
 
 def set_cash_balance(amount):
@@ -235,7 +251,7 @@ def get_orders(limit=50):
 def reset_paper_account():
     """Reset cash to default, clear all positions and orders. Returns new cash balance."""
     with _conn() as conn:
-        conn.execute("UPDATE account SET cash_balance = ? WHERE id = 1", (DEFAULT_PAPER_CASH,))
+        conn.execute("UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1", (DEFAULT_PAPER_CASH, DEFAULT_PAPER_CASH))
         conn.execute("DELETE FROM portfolio")
         conn.execute("DELETE FROM orders")
         conn.commit()

@@ -17,6 +17,7 @@ from db import (
     execute_sell,
     reset_paper_account,
     adjust_cash,
+    get_initial_balance,
 )
 from services.company_service import get_history, get_info, get_quote, search as company_search
 from services.article_service import get_newspapers, scrape_articles
@@ -212,12 +213,14 @@ def list_algorithms():
 
 @app.route("/api/portfolio", methods=["GET"])
 def api_portfolio():
-    """Return cash balance, positions, and recent orders."""
+    """Return cash balance, initial balance (for return %), positions, and recent orders."""
     cash = get_cash_balance()
+    initial_balance = get_initial_balance()
     positions = get_positions()
     orders = get_orders(limit=30)
     return jsonify({
         "cash_balance": cash,
+        "initial_balance": initial_balance,
         "positions": positions,
         "orders": orders,
     })
