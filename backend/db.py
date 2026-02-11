@@ -55,6 +55,17 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS limit_orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                side TEXT NOT NULL,
+                quantity REAL NOT NULL,
+                limit_price REAL NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL
+            )
+        """)
         conn.commit()
 
 
@@ -256,6 +267,61 @@ def reset_paper_account():
         conn.execute("DELETE FROM orders")
         conn.commit()
     return get_cash_balance()
+
+
+def add_limit_order(symbol, side, quantity, limit_price):
+    """Add a limit order. Returns (order dict) or (None, error)."""
+    symbol = (symbol or "").strip().upper()
+    if not symbol or side not in ("buy", "sell") or quantity <= 0 or limit_price <= 0:
+        return None, "Invalid limit order"
+    now = datetime.utcnow().isoformat()
+    with _conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO limit_orders (symbol, side, quantity, limit_price, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)",
+            (symbol, side, quantity, float(limit_price), now),
+        )
+        lid = cur.lastrowid
+        conn.commit()
+        row = conn.execute(
+            "SELECT id, symbol, side, quantity, limit_price, status, created_at FROM limit_orders WHERE id = ?",
+            (lid,),
+        ).fetchone()
+        return _row_to_dict(row), None
+
+
+def get_limit_orders(limit=50):
+    """Return limit orders, pending first then by id desc."""
+    with _conn() as conn:
+        rows = conn.execute(
+            """SELECT id, symbol, side, quantity, limit_price, status, created_at
+               FROM limit_orders ORDER BY status = 'pending' DESC, id DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+
+def get_pending_limit_orders():
+    """Return only pending limit orders."""
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT id, symbol, side, quantity, limit_price, status, created_at FROM limit_orders WHERE status = 'pending' ORDER BY id",
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+
+def mark_limit_order_filled(order_id):
+    """Set limit order status to 'filled'."""
+    with _conn() as conn:
+        conn.execute("UPDATE limit_orders SET status = 'filled' WHERE id = ?", (order_id,))
+        conn.commit()
+
+
+def cancel_limit_order(order_id):
+    """Cancel a pending limit order. Returns True if cancelled."""
+    with _conn() as conn:
+        cur = conn.execute("UPDATE limit_orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'", (order_id,))
+        conn.commit()
+        return cur.rowcount > 0
 
 
 def adjust_cash(amount, action="deposit"):
