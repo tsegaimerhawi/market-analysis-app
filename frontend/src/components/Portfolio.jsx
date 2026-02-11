@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaWallet, FaChartLine, FaHistory, FaRedo } from "react-icons/fa";
+import { FaWallet, FaChartLine, FaHistory, FaRedo, FaFileExport } from "react-icons/fa";
 
 const API_BASE = "http://localhost:5000";
 
@@ -69,6 +69,33 @@ export default function Portfolio() {
       .finally(() => setCashLoading(false));
   };
 
+  const exportCsv = () => {
+    const rows = [];
+    rows.push("Orders");
+    rows.push("Date,Side,Symbol,Quantity,Price,Total");
+    (portfolio.orders || []).forEach((o) => {
+      rows.push([o.created_at?.slice(0, 19).replace("T", " ") || "", o.side, o.symbol, o.quantity, o.price, o.total].join(","));
+    });
+    rows.push("");
+    rows.push("Positions");
+    rows.push("Symbol,Quantity,Avg Cost,Market Price,Market Value");
+    (portfolio.positions || []).forEach((p) => {
+      const qty = parseFloat(p.quantity);
+      const avgCost = parseFloat(p.avg_cost);
+      const mkt = prices[p.symbol];
+      const mktVal = mkt != null ? qty * mkt : "";
+      rows.push([p.symbol, qty, avgCost, mkt != null ? mkt : "", mktVal].join(","));
+    });
+    const csv = rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `portfolio-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleReset = () => {
     setResetting(true);
     setError(null);
@@ -110,13 +137,18 @@ export default function Portfolio() {
           <h1 className="mb-2">Portfolio</h1>
           <p className="text-muted mb-0">Paper trading: view your cash, positions, and order history. Use <strong>Trade</strong> to buy or sell.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-outline-danger d-flex align-items-center gap-2"
-          onClick={() => setShowResetConfirm(true)}
-        >
-          <FaRedo /> Reset paper account
-        </button>
+        <span className="d-flex gap-2">
+          <button type="button" className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={exportCsv}>
+            <FaFileExport /> Export CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-danger d-flex align-items-center gap-2"
+            onClick={() => setShowResetConfirm(true)}
+          >
+            <FaRedo /> Reset paper account
+          </button>
+        </span>
       </div>
 
       {showResetConfirm && (
