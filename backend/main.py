@@ -5,8 +5,19 @@ import json
 from utils.imports import UPLOAD_FOLDER
 from utils.logger import logger
 from algorithms import ALGORITHMS
-from db import init_db, get_watchlist, add_to_watchlist, remove_from_watchlist
-from services.company_service import get_history, get_info, search as company_search
+from db import (
+    init_db,
+    get_watchlist,
+    add_to_watchlist,
+    remove_from_watchlist,
+    get_cash_balance,
+    get_positions,
+    get_orders,
+    execute_buy,
+    execute_sell,
+    reset_paper_account,
+)
+from services.company_service import get_history, get_info, get_quote, search as company_search
 from services.article_service import get_newspapers, scrape_articles
 from algorithms.ensemble import run_future_prediction
 
@@ -193,6 +204,78 @@ def list_algorithms():
         "algorithms": [
             {"id": k, "name": v[0]} for k, v in ALGORITHMS.items()
         ]
+    })
+
+
+# --- Paper trading: portfolio, quote, order ---
+
+@app.route("/api/portfolio", methods=["GET"])
+def api_portfolio():
+    """Return cash balance, positions, and recent orders."""
+    cash = get_cash_balance()
+    positions = get_positions()
+    orders = get_orders(limit=30)
+    return jsonify({
+        "cash_balance": cash,
+        "positions": positions,
+        "orders": orders,
+    })
+
+
+@app.route("/api/portfolio/reset", methods=["POST"])
+def api_portfolio_reset():
+    """Reset paper account: cash to default, clear all positions and orders."""
+    cash = reset_paper_account()
+    return jsonify({
+        "message": "Paper account reset.",
+        "cash_balance": cash,
+        "positions": [],
+        "orders": [],
+    })
+
+
+@app.route("/api/quote/<symbol>", methods=["GET"])
+def api_quote(symbol):
+    """Get current price (quote) for a symbol."""
+    quote = get_quote(symbol)
+    if quote is None:
+        return jsonify({"error": "Invalid symbol or no quote"}), 400
+    return jsonify(quote)
+
+
+@app.route("/api/order", methods=["POST"])
+def api_order():
+    """
+    Place a paper trade. Body: { "symbol": "AAPL", "side": "buy"|"sell", "quantity": 10 }.
+    Uses live quote for price. Returns updated portfolio or error.
+    """
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get("symbol") or "").strip().upper()
+    side = (data.get("side") or "").strip().lower()
+    try:
+        quantity = float(data.get("quantity", 0))
+    except (TypeError, ValueError):
+        quantity = 0
+    if not symbol:
+        return jsonify({"error": "Symbol is required"}), 400
+    if side not in ("buy", "sell"):
+        return jsonify({"error": "Side must be buy or sell"}), 400
+    if quantity <= 0:
+        return jsonify({"error": "Quantity must be positive"}), 400
+    quote = get_quote(symbol)
+    if quote is None:
+        return jsonify({"error": "Could not get price for symbol"}), 400
+    price = quote["price"]
+    if side == "buy":
+        ok, result, cash = execute_buy(symbol, quantity, price)
+    else:
+        ok, result, cash = execute_sell(symbol, quantity, price)
+    if not ok:
+        return jsonify({"error": result}), 400
+    return jsonify({
+        "message": f"{side.capitalize()} {quantity} {symbol} @ {price}",
+        "positions": result,
+        "cash_balance": cash,
     })
 
 
