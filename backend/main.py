@@ -16,6 +16,7 @@ from db import (
     execute_buy,
     execute_sell,
     reset_paper_account,
+    adjust_cash,
 )
 from services.company_service import get_history, get_info, get_quote, search as company_search
 from services.article_service import get_newspapers, scrape_articles
@@ -232,6 +233,23 @@ def api_portfolio_reset():
         "positions": [],
         "orders": [],
     })
+
+
+@app.route("/api/portfolio/cash", methods=["POST"])
+def api_portfolio_cash():
+    """Deposit or withdraw paper cash. Body: { "amount": 1000, "action": "deposit"|"withdraw" }."""
+    data = request.get_json(silent=True) or {}
+    try:
+        amount = float(data.get("amount", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid amount"}), 400
+    action = (data.get("action") or "").strip().lower()
+    if action not in ("deposit", "withdraw"):
+        return jsonify({"error": "Action must be deposit or withdraw"}), 400
+    ok, result = adjust_cash(amount, action)
+    if not ok:
+        return jsonify({"error": result}), 400
+    return jsonify({"message": f"{action.capitalize()} ${amount:,.2f}", "cash_balance": result})
 
 
 @app.route("/api/quote/<symbol>", methods=["GET"])

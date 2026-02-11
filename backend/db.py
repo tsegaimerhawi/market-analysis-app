@@ -240,3 +240,28 @@ def reset_paper_account():
         conn.execute("DELETE FROM orders")
         conn.commit()
     return get_cash_balance()
+
+
+def adjust_cash(amount, action="deposit"):
+    """
+    Deposit or withdraw paper cash. action is 'deposit' or 'withdraw'.
+    Returns (True, new_balance) or (False, error_message).
+    """
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return False, "Invalid amount"
+    if amount <= 0:
+        return False, "Amount must be positive"
+    with _conn() as conn:
+        row = conn.execute("SELECT cash_balance FROM account WHERE id = 1").fetchone()
+        cash = float(row["cash_balance"]) if row else DEFAULT_PAPER_CASH
+        if action == "withdraw":
+            if amount > cash:
+                return False, "Insufficient cash to withdraw"
+            new_cash = cash - amount
+        else:
+            new_cash = cash + amount
+        conn.execute("UPDATE account SET cash_balance = ? WHERE id = 1", (new_cash,))
+        conn.commit()
+    return True, get_cash_balance()

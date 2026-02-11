@@ -15,6 +15,9 @@ export default function Portfolio() {
   const [prices, setPrices] = useState({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [cashAmount, setCashAmount] = useState("");
+  const [cashLoading, setCashLoading] = useState(false);
+  const [cashMessage, setCashMessage] = useState(null);
 
   const loadPortfolio = () => {
     setLoading(true);
@@ -46,6 +49,25 @@ export default function Portfolio() {
   useEffect(() => {
     loadPortfolio();
   }, []);
+
+  const handleCashAction = (action) => {
+    const amt = parseFloat(cashAmount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setCashMessage("Enter a positive amount.");
+      return;
+    }
+    setCashLoading(true);
+    setCashMessage(null);
+    axios
+      .post(`${API_BASE}/api/portfolio/cash`, { amount: amt, action })
+      .then((res) => {
+        setCashMessage(res.data.message);
+        setCashAmount("");
+        loadPortfolio();
+      })
+      .catch((err) => setCashMessage(err.response?.data?.error || "Failed"))
+      .finally(() => setCashLoading(false));
+  };
 
   const handleReset = () => {
     setResetting(true);
@@ -123,6 +145,39 @@ export default function Portfolio() {
           {error}
         </div>
       )}
+
+      {cashMessage && (
+        <div className="alert alert-success py-2" role="alert">
+          {cashMessage}
+        </div>
+      )}
+
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+          <h5 className="card-title mb-3">Deposit / Withdraw (paper)</h5>
+          <div className="row g-2 align-items-end">
+            <div className="col-auto">
+              <label className="form-label small text-muted mb-0">Amount ($)</label>
+              <input
+                type="number"
+                className="form-control"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={cashAmount}
+                onChange={(e) => setCashAmount(e.target.value)}
+                disabled={cashLoading}
+              />
+            </div>
+            <div className="col-auto">
+              <button type="button" className="btn btn-success" onClick={() => handleCashAction("deposit")} disabled={cashLoading || !cashAmount}>Deposit</button>
+            </div>
+            <div className="col-auto">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => handleCashAction("withdraw")} disabled={cashLoading || !cashAmount}>Withdraw</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="row g-3 mb-4">
         <div className="col-md-4">
