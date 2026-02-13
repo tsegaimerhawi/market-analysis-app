@@ -238,4 +238,6 @@ def run_agent_cycle():
         header = f"🤖 Trading Agent — {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC\n"
         body = "\n".join(cycle_updates)
         msg = header + body
-        send_telegram_message(msg)
+        ok, err = send_telegram_message(msg)
+        if not ok and err:
+            logger.warning("Telegram notify failed: %s", err)

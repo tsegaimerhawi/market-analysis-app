@@ -2,6 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import json
+
+# Load .env from backend dir (or cwd) so TELEGRAM_*, OPEN_ROUTER_*, etc. are set
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+    load_dotenv()
+except ImportError:
+    pass
 from utils.imports import UPLOAD_FOLDER
 from utils.logger import logger
 from algorithms import ALGORITHMS
@@ -455,10 +463,10 @@ def api_agent_telegram_test():
     try:
         from services.telegram_notify import send_message as send_telegram_message
         msg = "🤖 Trading Agent test — if you see this, Telegram is working."
-        ok = send_telegram_message(msg)
+        ok, err = send_telegram_message(msg)
         if ok:
             return jsonify({"ok": True, "message": "Test message sent to Telegram"})
-        return jsonify({"ok": False, "error": "Telegram not configured or send failed. Set TELEGRAM_HTTP_API_KEY and TELEGRAM_CHAT_ID."})
+        return jsonify({"ok": False, "error": err or "Set TELEGRAM_HTTP_API_KEY and TELEGRAM_CHAT_ID."})
     except Exception as e:
         logger.exception("Telegram test failed: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
