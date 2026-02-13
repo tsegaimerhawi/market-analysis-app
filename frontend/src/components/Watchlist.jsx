@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import CompanyInfo from "./CompanyInfo";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:5001";
 
-export default function Watchlist() {
+export default function Watchlist({ onTradeSymbol }) {
   const [watchlist, setWatchlist] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -123,6 +123,15 @@ export default function Watchlist() {
                 )}
               </span>
               <span className="d-flex flex-wrap gap-1">
+                {typeof onTradeSymbol === "function" && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-success me-1"
+                    onClick={() => onTradeSymbol(item.symbol)}
+                  >
+                    Trade
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-primary me-1"

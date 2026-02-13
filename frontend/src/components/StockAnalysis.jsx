@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:5001";
 
 export default function StockAnalysis() {
   const [startDate, setStartDate] = useState("");

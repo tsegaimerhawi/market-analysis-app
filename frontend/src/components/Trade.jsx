@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { FaArrowUp, FaArrowDown, FaChartLine, FaTimes } from "react-icons/fa";
+import "./Trade.css";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:5001";
 
 function formatMoney(n) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
 export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
@@ -122,52 +123,62 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
 
   const positionForSymbol = positions.find((p) => p.symbol === symbol.trim().toUpperCase());
   const maxSell = positionForSymbol ? parseFloat(positionForSymbol.quantity) : 0;
-  const totalCost = quote && quantity ? parseFloat(quantity) * (orderType === "limit" ? parseFloat(limitPrice) || quote.price : quote.price) : 0;
+  const estTotal = orderType === "limit" && quantity && limitPrice
+    ? parseFloat(quantity) * parseFloat(limitPrice)
+    : quote && quantity ? parseFloat(quantity) * quote.price : 0;
   const canSubmitMarket = quote && quantity && parseFloat(quantity) > 0 && (side !== "sell" || parseFloat(quantity) <= maxSell);
   const canSubmitLimit = symbol.trim() && quantity && parseFloat(quantity) > 0 && limitPrice && parseFloat(limitPrice) > 0 && (side !== "sell" || parseFloat(quantity) <= maxSell);
   const canSubmit = orderType === "market" ? canSubmitMarket : canSubmitLimit;
 
-  return (
-    <div className="trade">
-      <h1 className="mb-4">Trade</h1>
-      <p className="text-muted mb-4">Paper trading: buy or sell stocks using the current market price. No real money is used.</p>
+  const pendingCount = limitOrders.filter((o) => o.status === "pending").length;
 
-      <div className="row">
-        <div className="col-lg-5 mb-4">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <h5 className="card-title mb-4">Place order</h5>
+  return (
+    <div className="trade-page">
+      <header className="page-header">
+        <h1>Trade</h1>
+        <p className="subtitle">Paper trading — place market or limit orders. No real money is used.</p>
+      </header>
+
+      <div className="row g-4">
+        {/* Order ticket */}
+        <div className="col-lg-5">
+          <div className="trade-order-ticket">
+            <div className="ticket-header">Order ticket</div>
+            <div className="ticket-body">
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Symbol</label>
-                  <input
-                    type="text"
-                    className="form-control text-uppercase"
-                    placeholder="e.g. AAPL"
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    list="watchlist-symbols"
-                  />
-                  <datalist id="watchlist-symbols">
-                    {watchlist.map((w) => (
-                      <option key={w.id} value={w.symbol} />
-                    ))}
-                  </datalist>
+                  <div className="symbol-input-wrap">
+                    <input
+                      type="text"
+                      className="form-control text-uppercase"
+                      placeholder="e.g. AAPL, MSFT"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value)}
+                      list="watchlist-symbols"
+                      autoComplete="off"
+                    />
+                    <datalist id="watchlist-symbols">
+                      {watchlist.map((w) => (
+                        <option key={w.id} value={w.symbol} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label">Side</label>
-                  <div className="d-flex gap-2">
+                  <div className="side-toggle">
                     <button
                       type="button"
-                      className={`btn flex-grow-1 ${side === "buy" ? "btn-success" : "btn-outline-success"}`}
+                      className={`btn btn-buy ${side === "buy" ? "active" : "outline"}`}
                       onClick={() => setSide("buy")}
                     >
                       <FaArrowUp className="me-1" /> Buy
                     </button>
                     <button
                       type="button"
-                      className={`btn flex-grow-1 ${side === "sell" ? "btn-danger" : "btn-outline-danger"}`}
+                      className={`btn btn-sell ${side === "sell" ? "active" : "outline"}`}
                       onClick={() => setSide("sell")}
                       disabled={maxSell <= 0}
                       title={maxSell <= 0 ? "No position to sell" : ""}
@@ -176,13 +187,17 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
                     </button>
                   </div>
                   {side === "sell" && positionForSymbol && (
-                    <small className="text-muted">You have {maxSell} share(s).</small>
+                    <p className="trade-position-hint">You have {maxSell} share{maxSell !== 1 ? "s" : ""}.</p>
                   )}
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label">Order type</label>
-                  <select className="form-select" value={orderType} onChange={(e) => setOrderType(e.target.value)}>
+                  <select
+                    className="form-select trade-order-type-select"
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value)}
+                  >
                     <option value="market">Market</option>
                     <option value="limit">Limit</option>
                   </select>
@@ -190,7 +205,7 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
 
                 {orderType === "limit" && (
                   <div className="mb-3">
-                    <label className="form-label">Limit price ($)</label>
+                    <label className="form-label">Limit price</label>
                     <input
                       type="number"
                       className="form-control"
@@ -200,7 +215,7 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
                       value={limitPrice}
                       onChange={(e) => setLimitPrice(e.target.value)}
                     />
-                    <small className="text-muted">Buy executes when price ≤ limit; sell when price ≥ limit.</small>
+                    <p className="trade-position-hint">Buy when price ≤ limit; sell when price ≥ limit.</p>
                   </div>
                 )}
 
@@ -217,114 +232,141 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
                   />
                 </div>
 
-                {(quote || (orderType === "limit" && limitPrice)) && (
-                  <div className="mb-3 p-2 bg-light rounded">
+                {(quote || (orderType === "limit" && limitPrice)) && (quantity && parseFloat(quantity) > 0) && (
+                  <div className="order-summary">
                     {quote && (
-                      <div className="d-flex justify-content-between">
-                        <span className="text-muted">Market price</span>
-                        <strong>{formatMoney(quote.price)}</strong>
+                      <div className="order-summary-row">
+                        <span className="label">Market price</span>
+                        <span className="value">{formatMoney(quote.price)}</span>
                       </div>
                     )}
-                    {orderType === "limit" && quantity && parseFloat(quantity) > 0 && limitPrice && (
-                      <div className="d-flex justify-content-between mt-1">
-                        <span className="text-muted">Est. total (at limit)</span>
-                        <strong>{formatMoney(parseFloat(quantity) * parseFloat(limitPrice))}</strong>
+                    {orderType === "limit" && limitPrice && (
+                      <div className="order-summary-row">
+                        <span className="label">Limit price</span>
+                        <span className="value">{formatMoney(parseFloat(limitPrice))}</span>
                       </div>
                     )}
-                    {orderType === "market" && quantity && parseFloat(quantity) > 0 && (
-                      <div className="d-flex justify-content-between mt-1">
-                        <span className="text-muted">Est. total</span>
-                        <strong>{formatMoney(totalCost)}</strong>
-                      </div>
-                    )}
+                    <div className="order-summary-row">
+                      <span className="label">Est. total</span>
+                      <span className="value">{formatMoney(estTotal)}</span>
+                    </div>
                   </div>
                 )}
 
-                {quoteLoading && <p className="small text-muted">Loading quote…</p>}
+                {quoteLoading && (
+                  <p className="small text-muted mb-2">Loading quote…</p>
+                )}
 
                 {error && (
-                  <div className="alert alert-danger py-2 mb-3" role="alert">
+                  <div className="alert alert-danger trade-alert mb-3" role="alert">
                     {error}
                   </div>
                 )}
                 {success && (
-                  <div className="alert alert-success py-2 mb-3" role="alert">
+                  <div className="alert alert-success trade-alert mb-3" role="alert">
                     {success}
                   </div>
                 )}
 
                 <button
                   type="submit"
-                  className={`btn w-100 ${side === "buy" ? "btn-success" : "btn-danger"}`}
+                  className={`btn btn-submit ${side === "buy" ? "btn-buy" : "btn-sell"}`}
                   disabled={loading || !canSubmit}
                 >
-                  {loading ? "Placing…" : orderType === "limit" ? "Place limit order" : (side === "buy" ? "Buy" : "Sell")} {symbol || "—"}
+                  {loading
+                    ? "Placing order…"
+                    : orderType === "limit"
+                      ? `Place limit ${side} order`
+                      : `${side === "buy" ? "Buy" : "Sell"} ${symbol || "—"}`
+                  }
                 </button>
               </form>
             </div>
           </div>
         </div>
 
+        {/* Quote & open orders */}
         <div className="col-lg-7">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <h5 className="card-title mb-3">Quote</h5>
+          <div className="trade-quote-card">
+            <div className="quote-header">
+              <FaChartLine className="me-1" /> Live quote
+            </div>
+            <div className="quote-body">
               {!symbol.trim() ? (
-                <p className="text-muted mb-0">Enter a symbol to see live price.</p>
+                <div className="trade-quote-empty">Enter a symbol to see price and details.</div>
               ) : quoteLoading ? (
-                <p className="text-muted mb-0">Loading…</p>
+                <div className="trade-quote-empty">Loading…</div>
               ) : quote ? (
-                <dl className="row mb-0">
-                  <dt className="col-sm-4">Symbol</dt>
-                  <dd className="col-sm-8"><strong>{quote.symbol}</strong></dd>
-                  <dt className="col-sm-4">Price</dt>
-                  <dd className="col-sm-8">{formatMoney(quote.price)}</dd>
-                  {quote.previousClose != null && (
-                    <>
-                      <dt className="col-sm-4">Previous close</dt>
-                      <dd className="col-sm-8">{formatMoney(quote.previousClose)}</dd>
-                    </>
-                  )}
-                  {quote.shortName && (
-                    <>
-                      <dt className="col-sm-4">Name</dt>
-                      <dd className="col-sm-8">{quote.shortName}</dd>
-                    </>
-                  )}
-                </dl>
+                <>
+                  <div className="quote-price">{formatMoney(quote.price)}</div>
+                  {quote.shortName && <div className="quote-name">{quote.shortName}</div>}
+                  <div className="d-flex align-items-center gap-2 mt-1">
+                    <span className="fw-bold text-uppercase" style={{ fontSize: "0.875rem" }}>{quote.symbol}</span>
+                    {quote.currency && <span className="text-muted small">· {quote.currency}</span>}
+                  </div>
+                  <div className="quote-meta">
+                    {quote.previousClose != null && (
+                      <span className="quote-meta-item">
+                        Prev close <strong>{formatMoney(quote.previousClose)}</strong>
+                      </span>
+                    )}
+                  </div>
+                </>
               ) : (
-                <p className="text-muted mb-0">No quote found for this symbol.</p>
+                <div className="trade-quote-empty">No quote found for this symbol.</div>
               )}
             </div>
           </div>
 
-          {limitOrders.length > 0 && (
-            <div className="card shadow-sm border-0 mt-4">
-              <div className="card-body">
-                <h5 className="card-title mb-3">Limit orders</h5>
-                <div className="table-responsive">
-                  <table className="table table-sm">
-                    <thead className="table-light">
+          <div className="trade-limit-orders">
+            <div className="orders-header">
+              <span>Open limit orders</span>
+              {pendingCount > 0 && (
+                <span className="badge bg-secondary">{pendingCount} pending</span>
+              )}
+            </div>
+            {limitOrders.length === 0 ? (
+              <div className="trade-quote-empty py-4">No limit orders. Place a limit order above.</div>
+            ) : (
+              <>
+                <div className="orders-table-wrap">
+                  <table className="table">
+                    <thead>
                       <tr>
                         <th>Symbol</th>
                         <th>Side</th>
                         <th className="text-end">Qty</th>
                         <th className="text-end">Limit</th>
                         <th>Status</th>
-                        <th></th>
+                        <th className="text-end"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {limitOrders.map((o) => (
                         <tr key={o.id}>
                           <td><strong>{o.symbol}</strong></td>
-                          <td><span className={`badge ${o.side === "buy" ? "bg-success" : "bg-danger"}`}>{o.side}</span></td>
+                          <td>
+                            <span className={o.side === "buy" ? "badge-buy" : "badge-sell"}>
+                              {o.side}
+                            </span>
+                          </td>
                           <td className="text-end">{parseFloat(o.quantity)}</td>
                           <td className="text-end">{formatMoney(parseFloat(o.limit_price))}</td>
-                          <td><span className={`badge ${o.status === "pending" ? "bg-warning text-dark" : "bg-secondary"}`}>{o.status}</span></td>
                           <td>
+                            <span className={o.status === "pending" ? "badge-pending" : "badge-filled"}>
+                              {o.status}
+                            </span>
+                          </td>
+                          <td className="text-end">
                             {o.status === "pending" && (
-                              <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => handleCancelLimit(o.id)}>Cancel</button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger btn-cancel"
+                                onClick={() => handleCancelLimit(o.id)}
+                                title="Cancel order"
+                              >
+                                <FaTimes className="me-1" /> Cancel
+                              </button>
                             )}
                           </td>
                         </tr>
@@ -332,10 +374,12 @@ export default function Trade({ initialSymbol = "", onConsumeSymbol }) {
                     </tbody>
                   </table>
                 </div>
-                <p className="small text-muted mb-0">Limit orders are checked when you open Portfolio; they execute when the market price reaches your limit.</p>
-              </div>
-            </div>
-          )}
+                <div className="orders-footer">
+                  Limit orders are evaluated when you open Portfolio; they fill when the market price reaches your limit.
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

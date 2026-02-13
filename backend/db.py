@@ -1,4 +1,5 @@
 """SQLite watchlist database."""
+import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -67,6 +68,35 @@ def init_db():
                 limit_price REAL NOT NULL,
                 status TEXT NOT NULL DEFAULT 'pending',
                 created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS agent_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS agent_reasoning (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                step TEXT NOT NULL,
+                message TEXT NOT NULL,
+                data TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS agent_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                action TEXT NOT NULL,
+                position_size REAL NOT NULL,
+                reason TEXT NOT NULL,
+                executed INTEGER NOT NULL DEFAULT 0,
+                order_id INTEGER,
+                guardrail_triggered INTEGER NOT NULL DEFAULT 0
             )
         """)
         conn.commit()
@@ -325,6 +355,88 @@ def cancel_limit_order(order_id):
         cur = conn.execute("UPDATE limit_orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'", (order_id,))
         conn.commit()
         return cur.rowcount > 0
+
+
+# --- Trading agent ---
+
+def get_agent_enabled():
+    """Return True if the auto-trading agent is enabled."""
+    with _conn() as conn:
+        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'enabled'").fetchone()
+        return (row and row["value"] == "1")
+
+
+def set_agent_enabled(enabled):
+    """Set agent on/off."""
+    with _conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('enabled', ?)", ("1" if enabled else "0",))
+        conn.commit()
+
+
+def add_agent_reasoning(symbol, step, message, data=None):
+    """Append a reasoning step for the UI."""
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO agent_reasoning (created_at, symbol, step, message, data) VALUES (?, ?, ?, ?, ?)",
+            (datetime.utcnow().isoformat(), symbol, step, message, json.dumps(data) if data is not None else None),
+        )
+        conn.commit()
+
+
+def get_agent_reasoning(limit=100, symbol=None):
+    """Get recent reasoning steps, optionally filtered by symbol."""
+    with _conn() as conn:
+        if symbol:
+            rows = conn.execute(
+                "SELECT id, created_at, symbol, step, message, data FROM agent_reasoning WHERE symbol = ? ORDER BY id DESC LIMIT ?",
+                (symbol.strip().upper(), limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, created_at, symbol, step, message, data FROM agent_reasoning ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        out = []
+        for r in rows:
+            row = _row_to_dict(r)
+            if row.get("data"):
+                try:
+                    row["data"] = json.loads(row["data"])
+                except Exception:
+                    pass
+            out.append(row)
+        return out
+
+
+def add_agent_history(symbol, action, position_size, reason, executed=False, order_id=None, guardrail_triggered=False):
+    """Log an agent decision/trade to history."""
+    with _conn() as conn:
+        conn.execute(
+            """INSERT INTO agent_history (created_at, symbol, action, position_size, reason, executed, order_id, guardrail_triggered)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (datetime.utcnow().isoformat(), symbol, action, float(position_size), reason, 1 if executed else 0, order_id, 1 if guardrail_triggered else 0),
+        )
+        conn.commit()
+
+
+def get_agent_history(limit=50):
+    """Get recent agent history entries."""
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT id, created_at, symbol, action, position_size, reason, executed, order_id, guardrail_triggered FROM agent_history ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+
+def set_last_agent_history_executed(symbol, order_id):
+    """Mark the most recent agent_history row for this symbol as executed with order_id."""
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE agent_history SET executed = 1, order_id = ? WHERE id = (SELECT id FROM agent_history WHERE symbol = ? ORDER BY id DESC LIMIT 1)",
+            (order_id, symbol.strip().upper()),
+        )
+        conn.commit()
 
 
 def adjust_cash(amount, action="deposit"):

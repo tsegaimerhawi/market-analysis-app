@@ -8,3 +8,5 @@ xgboost
 tensorflow
 yfinance
 feedparser
+pydantic
+openai

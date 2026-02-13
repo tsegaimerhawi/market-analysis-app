@@ -1,0 +1,345 @@
+/* Trade — professional order ticket layout */
+
+.trade-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.trade-page .page-header {
+  margin-bottom: 1.5rem;
+}
+
+.trade-page .page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1d21;
+  margin-bottom: 0.25rem;
+}
+
+.trade-page .page-header .subtitle {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.trade-order-ticket {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.trade-order-ticket .ticket-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #495057;
+}
+
+.trade-order-ticket .ticket-body {
+  padding: 1.25rem 1rem;
+}
+
+.trade-order-ticket .symbol-input-wrap {
+  position: relative;
+}
+
+.trade-order-ticket .symbol-input-wrap .form-control {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 0.75rem;
+}
+
+.trade-order-ticket .side-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.trade-order-ticket .side-toggle .btn {
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 6px;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.trade-order-ticket .side-toggle .btn-buy {
+  background: #0d6832;
+  border-color: #0d6832;
+  color: #fff;
+}
+
+.trade-order-ticket .side-toggle .btn-buy:hover:not(:disabled),
+.trade-order-ticket .side-toggle .btn-buy.active {
+  background: #0a5027;
+  border-color: #0a5027;
+  color: #fff;
+}
+
+.trade-order-ticket .side-toggle .btn-buy.outline {
+  background: transparent;
+  color: #0d6832;
+  border: 2px solid #0d6832;
+}
+
+.trade-order-ticket .side-toggle .btn-sell {
+  background: #c41e3a;
+  border-color: #c41e3a;
+  color: #fff;
+}
+
+.trade-order-ticket .side-toggle .btn-sell:hover:not(:disabled),
+.trade-order-ticket .side-toggle .btn-sell.active {
+  background: #9e1830;
+  border-color: #9e1830;
+  color: #fff;
+}
+
+.trade-order-ticket .side-toggle .btn-sell.outline {
+  background: transparent;
+  color: #c41e3a;
+  border: 2px solid #c41e3a;
+}
+
+.trade-order-ticket .side-toggle .btn-sell:disabled.outline {
+  color: #adb5bd;
+  border-color: #dee2e6;
+}
+
+.trade-order-ticket .form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6c757d;
+  margin-bottom: 0.35rem;
+}
+
+.trade-order-ticket .order-summary {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.875rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.trade-order-ticket .order-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+}
+
+.trade-order-ticket .order-summary-row .label {
+  color: #6c757d;
+}
+
+.trade-order-ticket .order-summary-row .value {
+  font-weight: 600;
+  color: #1a1d21;
+}
+
+.trade-order-ticket .btn-submit {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.trade-order-ticket .btn-submit.btn-buy {
+  background: #0d6832;
+  border-color: #0d6832;
+}
+
+.trade-order-ticket .btn-submit.btn-buy:hover:not(:disabled) {
+  background: #0a5027;
+  border-color: #0a5027;
+}
+
+.trade-order-ticket .btn-submit.btn-sell {
+  background: #c41e3a;
+  border-color: #c41e3a;
+}
+
+.trade-order-ticket .btn-submit.btn-sell:hover:not(:disabled) {
+  background: #9e1830;
+  border-color: #9e1830;
+}
+
+.trade-quote-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.trade-quote-card .quote-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #495057;
+}
+
+.trade-quote-card .quote-body {
+  padding: 1.25rem 1rem;
+}
+
+.trade-quote-card .quote-price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1d21;
+  line-height: 1.2;
+}
+
+.trade-quote-card .quote-name {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+.trade-quote-card .quote-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  font-size: 0.8125rem;
+}
+
+.trade-quote-card .quote-meta-item {
+  color: #6c757d;
+}
+
+.trade-quote-card .quote-meta-item strong {
+  color: #1a1d21;
+  font-weight: 600;
+}
+
+.trade-quote-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #adb5bd;
+  font-size: 0.875rem;
+}
+
+.trade-limit-orders {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-top: 1.5rem;
+}
+
+.trade-limit-orders .orders-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #495057;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trade-limit-orders .orders-table-wrap {
+  overflow-x: auto;
+}
+
+.trade-limit-orders table {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.trade-limit-orders th {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6c757d;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  white-space: nowrap;
+}
+
+.trade-limit-orders td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: middle;
+}
+
+.trade-limit-orders tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.trade-limit-orders .badge-buy {
+  background: rgba(13, 104, 50, 0.12);
+  color: #0d6832;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+}
+
+.trade-limit-orders .badge-sell {
+  background: rgba(196, 30, 58, 0.12);
+  color: #c41e3a;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+}
+
+.trade-limit-orders .badge-pending {
+  background: rgba(253, 193, 7, 0.2);
+  color: #856404;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+}
+
+.trade-limit-orders .badge-filled {
+  background: #e9ecef;
+  color: #495057;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+}
+
+.trade-limit-orders .btn-cancel {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  font-weight: 600;
+}
+
+.trade-limit-orders .orders-footer {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #f1f3f5;
+  font-size: 0.75rem;
+  color: #adb5bd;
+}
+
+.trade-alert {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.trade-position-hint {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.35rem;
+}
+
+.trade-order-type-select {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}

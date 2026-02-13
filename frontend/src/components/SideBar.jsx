@@ -43,6 +43,27 @@ export default function SideBar({ activeView, setActiveView }) {
             >
               Future Prediction
             </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "portfolio" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("portfolio")}
+            >
+              Portfolio
+            </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "trade" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("trade")}
+            >
+              Trade
+            </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "agent" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("agent")}
+            >
+              Trading Agent
+            </button>
           </nav>
 
           <hr />

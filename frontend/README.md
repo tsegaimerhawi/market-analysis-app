@@ -10,7 +10,7 @@ React frontend for the **Market Analysis App**: stock watchlist, multi-algorithm
 - **Axios** — API requests
 - **react-icons** — UI icons
 
-The app expects the [backend](../backend) API at `http://localhost:5000`. Start the backend before or with the frontend.
+The app expects the [backend](../backend) API at `http://localhost:5001`. Start the backend before or with the frontend. (Port 5001 is used to avoid conflict with macOS AirPlay on 5000.)
 
 ## Project structure
 
@@ -49,7 +49,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-API: `http://localhost:5000`
+API: `http://localhost:5001`
 
 **3. Start the frontend**
 
@@ -79,7 +79,7 @@ App: [http://localhost:3000](http://localhost:3000)
 
 ## Configuration
 
-The API base URL is set in components as `http://localhost:5000`. To point to another host (e.g. production), update the `API_BASE` constant in each component that uses it, or introduce a shared config/env variable.
+The API base URL is set in components as `http://localhost:5001`. To point to another host or port (e.g. production), set the `PORT` env when starting the backend and update the `API_BASE` constant in each component that uses it, or introduce a shared config/env variable.
 
 ## Learn more
 

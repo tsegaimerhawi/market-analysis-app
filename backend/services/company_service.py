@@ -75,6 +75,43 @@ def get_info(symbol):
         return {"symbol": symbol, "error": str(e)}
 
 
+def get_quote(symbol):
+    """
+    Get current/latest price for a symbol (for trading). Uses last close or regularMarketPrice.
+    Returns dict with price, previousClose, currency, or None if invalid.
+    """
+    symbol = (symbol or "").strip().upper()
+    if not symbol:
+        return None
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+    try:
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        if not info:
+            return None
+        # Prefer regularMarketPrice; fallback to previousClose or last close from history
+        price = info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose")
+        if price is None:
+            hist = ticker.history(period="5d")
+            if hist is not None and not hist.empty and "Close" in hist.columns:
+                price = float(hist["Close"].iloc[-1])
+        if price is None:
+            return None
+        return {
+            "symbol": symbol,
+            "price": round(float(price), 2),
+            "previousClose": info.get("previousClose"),
+            "currency": info.get("currency", "USD"),
+            "shortName": info.get("shortName") or info.get("longName"),
+        }
+    except Exception as e:
+        logger.exception("get_quote failed: %s", e)
+        return None
+
+
 def search(query):
     """
     Search for tickers by name/symbol. Uses yfinance tickers list or fallback.

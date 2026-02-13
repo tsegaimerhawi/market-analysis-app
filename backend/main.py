@@ -24,6 +24,10 @@ from db import (
     get_pending_limit_orders,
     mark_limit_order_filled,
     cancel_limit_order,
+    get_agent_enabled,
+    set_agent_enabled,
+    get_agent_reasoning,
+    get_agent_history,
 )
 from services.company_service import get_history, get_info, get_quote, search as company_search
 from services.article_service import get_newspapers, scrape_articles
@@ -357,8 +361,73 @@ def api_limit_order_cancel(order_id):
     return jsonify({"error": "Order not found or already filled/cancelled"}), 404
 
 
-if __name__ == "__main__":
+# --- Trading agent ---
+
+@app.route("/api/agent/status", methods=["GET"])
+def api_agent_status():
+    """Return whether the auto-trading agent is enabled."""
+    return jsonify({"enabled": get_agent_enabled()})
+
+
+@app.route("/api/agent/status", methods=["POST"])
+def api_agent_set_status():
+    """Turn agent on or off. Body: { "enabled": true|false }."""
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled"))
+    set_agent_enabled(enabled)
+    return jsonify({"enabled": get_agent_enabled()})
+
+
+@app.route("/api/agent/reasoning", methods=["GET"])
+def api_agent_reasoning():
+    """Return recent reasoning steps. Query: limit=100, symbol=AAPL (optional)."""
+    limit = min(int(request.args.get("limit", 100)), 500)
+    symbol = request.args.get("symbol", "").strip().upper() or None
+    steps = get_agent_reasoning(limit=limit, symbol=symbol)
+    return jsonify({"reasoning": steps})
+
+
+@app.route("/api/agent/history", methods=["GET"])
+def api_agent_history():
+    """Return agent decision/trade history."""
+    limit = min(int(request.args.get("limit", 50)), 200)
+    entries = get_agent_history(limit=limit)
+    return jsonify({"history": entries})
+
+
+@app.route("/api/agent/run", methods=["POST"])
+def api_agent_run_once():
+    """Trigger one agent cycle manually (runs in request; may be slow)."""
     try:
-        app.run(debug=True, port=5000, use_reloader=True, reloader_type="stat")
+        from agent_runner import run_agent_cycle
+        run_agent_cycle()
+        return jsonify({"message": "Cycle completed"})
+    except Exception as e:
+        logger.exception("Agent run failed")
+        return jsonify({"error": str(e)}), 500
+
+
+def _agent_loop():
+    """Background loop: every 5 minutes run agent cycle if enabled."""
+    import time
+    while True:
+        time.sleep(300)  # 5 min
+        try:
+            if get_agent_enabled():
+                from agent_runner import run_agent_cycle
+                run_agent_cycle()
+        except Exception as e:
+            logger.exception("Agent loop error: %s", e)
+
+
+if __name__ == "__main__":
+    import threading
+    # Start agent background thread in the reloader child (where Flask runs)
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        agent_thread = threading.Thread(target=_agent_loop, daemon=True)
+        agent_thread.start()
+    port = int(os.environ.get("PORT", 5001))
+    try:
+        app.run(debug=True, port=port, use_reloader=True, reloader_type="stat")
     except TypeError:
-        app.run(debug=True, port=5000, use_reloader=False)
+        app.run(debug=True, port=port, use_reloader=False)

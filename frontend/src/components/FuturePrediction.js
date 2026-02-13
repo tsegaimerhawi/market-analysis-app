@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts";
 import { FaArrowUp, FaArrowDown, FaCalendarAlt, FaHistory } from "react-icons/fa";
 import "./FuturePrediction.css";
@@ -38,6 +39,7 @@ const FuturePrediction = () => {
   const [showAlgoDropdown, setShowAlgoDropdown] = useState(false);
   const [selectedAlgorithms, setSelectedAlgorithms] = useState(["linear_regression", "random_forest", "xgboost"]);
   const algoDropdownRef = useRef(null);
+  const [brushRange, setBrushRange] = useState({ startIndex: 0, endIndex: undefined });
 
   useEffect(() => {
     const today = new Date();
@@ -54,7 +56,7 @@ const FuturePrediction = () => {
 
   const fetchWatchlist = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/watchlist");
+      const response = await axios.get("http://localhost:5001/api/watchlist");
       const list = response.data.watchlist || [];
       setWatchlist(list);
       if (list.length > 0) setSymbol(list[0].symbol);
@@ -89,7 +91,7 @@ const FuturePrediction = () => {
     setResult(null);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/predict-future", {
+      const response = await axios.post("http://localhost:5001/api/predict-future", {
         symbol,
         startDate,
         endDate,
@@ -130,6 +132,15 @@ const FuturePrediction = () => {
   };
 
   const chartData = prepareChartData();
+  const totalPoints = chartData.length;
+  const brushEnd = brushRange.endIndex !== undefined ? brushRange.endIndex : Math.max(0, totalPoints - 1);
+  const zoomedData = totalPoints > 0 ? chartData.slice(brushRange.startIndex, brushEnd + 1) : [];
+
+  useEffect(() => {
+    if (result && totalPoints > 0) {
+      setBrushRange({ startIndex: 0, endIndex: totalPoints - 1 });
+    }
+  }, [result, totalPoints]);
 
   return (
     <div className="future-prediction">
@@ -224,10 +235,10 @@ const FuturePrediction = () => {
           <div className="col-lg-8 mb-4">
             <div className="card card-body h-100 shadow-sm border-0">
               <h5 className="card-title mb-4 fw-bold text-dark"><FaHistory className="me-2 text-primary" /> Price Forecast</h5>
-              <p className="small text-muted mb-3">End date is set to 2 days before today so you can compare predictions to actual prices. <strong>Actual (stock)</strong> appears when real market data exists for the forecast dates.</p>
-              <div style={{ width: '100%', height: 400 }}>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={chartData}>
+              <p className="small text-muted mb-3">End date is set to 2 days before today so you can compare predictions to actual prices. <strong>Actual (stock)</strong> appears when real market data exists for the forecast dates. Drag the brush below to zoom into a date range.</p>
+              <div style={{ width: '100%', height: 460 }}>
+                <ResponsiveContainer width="100%" height={460}>
+                  <LineChart data={zoomedData.length > 0 ? zoomedData : chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} />
                     <YAxis domain={["auto", "auto"]} axisLine={false} tickLine={false} />
@@ -261,6 +272,17 @@ const FuturePrediction = () => {
                       };
                       return (<Line key={algo} type="monotone" dataKey={algo} stroke={strokeMap[algo] || '#8884d8'} strokeWidth={1} dot={false} name={nameMap[algo] || algo} />);
                     })}
+                    {chartData.length > 1 && (
+                      <Brush
+                        dataKey="date"
+                        height={50}
+                        stroke="#0d6efd"
+                        fill="#e7f1ff"
+                        startIndex={brushRange.startIndex}
+                        endIndex={brushEnd}
+                        onChange={(range) => setBrushRange({ startIndex: range.startIndex ?? 0, endIndex: range.endIndex })}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

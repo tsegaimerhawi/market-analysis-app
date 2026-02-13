@@ -21,7 +21,7 @@ function Form() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/stock_prediction/run_bayesian",
+        "http://localhost:5001/stock_prediction/run_bayesian",
         formData,
         {
           headers: {
