@@ -273,8 +273,10 @@ def api_portfolio():
 
 @app.route("/api/portfolio/reset", methods=["POST"])
 def api_portfolio_reset():
-    """Reset paper account: cash to default, clear all positions and orders."""
-    cash = reset_paper_account()
+    """Reset paper account: cash to default or body.initial_cash (e.g. 100), clear all positions and orders."""
+    data = request.get_json(silent=True) or {}
+    initial_cash = data.get("initial_cash")
+    cash = reset_paper_account(initial_cash=initial_cash)
     return jsonify({
         "message": "Paper account reset.",
         "cash_balance": cash,
@@ -580,10 +582,10 @@ def api_agent_telegram_test():
 
 
 def _agent_loop():
-    """Background loop: every 5 minutes run agent cycle if enabled."""
+    """Background loop: every 6 hours run agent cycle if enabled (re-checks volatile stocks)."""
     import time
     while True:
-        time.sleep(300)  # 5 min
+        time.sleep(6 * 3600)  # 6 hours
         try:
             if get_agent_enabled():
                 from agent_runner import run_agent_cycle

@@ -292,10 +292,12 @@ def get_orders(limit=50):
         return [_row_to_dict(r) for r in rows]
 
 
-def reset_paper_account():
-    """Reset cash to default, clear all positions and orders. Returns new cash balance."""
+def reset_paper_account(initial_cash=None):
+    """Reset cash to initial_cash or default, clear all positions and orders. Returns new cash balance."""
+    amount = float(initial_cash) if initial_cash is not None else DEFAULT_PAPER_CASH
+    amount = max(0.0, amount)
     with _conn() as conn:
-        conn.execute("UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1", (DEFAULT_PAPER_CASH, DEFAULT_PAPER_CASH))
+        conn.execute("UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1", (amount, amount))
         conn.execute("DELETE FROM portfolio")
         conn.execute("DELETE FROM orders")
         conn.commit()

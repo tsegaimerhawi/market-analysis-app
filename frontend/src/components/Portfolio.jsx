@@ -14,6 +14,7 @@ export default function Portfolio() {
   const [error, setError] = useState(null);
   const [prices, setPrices] = useState({});
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetToAmount, setResetToAmount] = useState("100");
   const [resetting, setResetting] = useState(false);
   const [cashAmount, setCashAmount] = useState("");
   const [cashLoading, setCashLoading] = useState(false);
@@ -99,8 +100,10 @@ export default function Portfolio() {
   const handleReset = () => {
     setResetting(true);
     setError(null);
+    const amount = resetToAmount.trim() ? parseFloat(resetToAmount) : null;
+    const body = amount != null && !isNaN(amount) && amount >= 0 ? { initial_cash: amount } : {};
     axios
-      .post(`${API_BASE}/api/portfolio/reset`)
+      .post(`${API_BASE}/api/portfolio/reset`, body)
       .then((res) => {
         setPortfolio({ ...portfolio, cash_balance: res.data.cash_balance, positions: [], orders: [] });
         setPrices({});
@@ -160,7 +163,18 @@ export default function Portfolio() {
                 <button type="button" className="btn-close" onClick={() => setShowResetConfirm(false)} aria-label="Close" />
               </div>
               <div className="modal-body">
-                This will reset cash to $100,000 and clear all positions and orders. This cannot be undone. Continue?
+                <p className="mb-2">This will clear all positions and orders and set cash to the amount below. This cannot be undone.</p>
+                <label className="form-label small">Starting cash ($)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 100 or 100000"
+                  value={resetToAmount}
+                  onChange={(e) => setResetToAmount(e.target.value)}
+                />
+                <p className="small text-muted mt-2 mb-0">Leave empty for default $100,000.</p>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowResetConfirm(false)} disabled={resetting}>Cancel</button>
