@@ -131,6 +131,10 @@ export default function TradingAgent() {
           <h5 className="card-title d-flex align-items-center gap-2">
             <FaCog /> Control
           </h5>
+          <div className="alert alert-info py-2 mb-3 d-flex align-items-center gap-2" role="alert">
+            <FaShieldAlt />
+            <span><strong>Paper trading only.</strong> No real money at risk. All trades are simulated.</span>
+          </div>
           <div className="d-flex flex-wrap align-items-center gap-3">
             <div className="d-flex align-items-center gap-2">
               <span className="fw-bold">Auto-trading</span>
@@ -201,6 +205,11 @@ export default function TradingAgent() {
           <p className="small text-muted mb-0 mt-1">
             <FaShieldAlt className="me-1" /> <strong>Stop-loss</strong>: sell full position if P&amp;L ≤ -X%. <strong>Take-profit</strong>: sell full position if P&amp;L ≥ Y%. Leave blank to disable. Applies to all agent positions.
           </p>
+          {includeVolatile && (
+            <div className="small mt-2 p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">
+              <strong>Volatile mode safeguards:</strong> If you don&apos;t set a stop-loss, a <strong>5% default stop-loss</strong> is used so losses are limited. Position size for volatile-only symbols is capped at <strong>15% of cash</strong> per buy to reduce risk.
+            </div>
+          )}
           {includeVolatile && volatileSymbols.length > 0 && (
             <p className="small mb-0 mt-1">
               <FaChartLine className="me-1" /> Current volatile list (8h algo): {volatileSymbols.join(", ")}

@@ -1,10 +1,15 @@
 """
 Single-cycle runner for the trading agent. Called when agent is enabled (e.g. by a scheduler or thread).
 Gathers data for each symbol (watchlist + optional volatile list), runs TradeOrchestrator, logs reasoning, and executes paper trades.
+When Volatile is on: default stop-loss applies if none set; position size is capped for volatile-only symbols to limit risk.
 """
 import json
 import sys
 import os
+
+# Safeguards when volatile stocks are enabled
+DEFAULT_STOP_LOSS_PCT_WHEN_VOLATILE = 5.0   # use this if user didn't set stop-loss (limit losses)
+MAX_POSITION_SIZE_VOLATILE_ONLY = 0.15      # max 15% of cash per buy for symbols from volatile list only (not watchlist)
 
 # Ensure backend root is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +32,7 @@ from db import (
 )
 from services.company_service import get_history, get_quote
 from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file
+from services.telegram_notify import send_message as send_telegram_message
 from agents.trade_orchestrator import TradeOrchestrator
 from agents.llm_manager import LLMManager
 from agents.lstm_predictor import LSTMPredictor
@@ -86,9 +92,11 @@ def run_agent_cycle():
 
     # Optionally add volatile symbols (from 8h volatility algorithm) that are NOT in watchlist
     symbols_to_run = list(watchlist_symbols)
+    volatile_only_symbols = set()
     if get_agent_include_volatile():
         volatile = _get_volatile_symbols_dynamic()
         extra = [s for s in volatile if s and s not in watchlist_symbols]
+        volatile_only_symbols = set(extra)
         symbols_to_run = symbols_to_run + extra
         if extra:
             add_agent_reasoning("VOLATILE", "volatile", f"Added {len(extra)} volatile symbols (8h algo + small-cap bias): {', '.join(extra[:10])}{'...' if len(extra) > 10 else ''}", {"count": len(extra), "symbols": extra})
@@ -96,6 +104,8 @@ def run_agent_cycle():
     if not symbols_to_run:
         logger.debug("Agent cycle: no symbols to run")
         return
+
+    cycle_updates = []  # collect buy/sell/stop-loss/take-profit for Telegram
 
     llm = LLMManager()
     orchestrator = TradeOrchestrator(
@@ -107,6 +117,10 @@ def run_agent_cycle():
 
     stop_loss_pct = get_agent_stop_loss_pct()
     take_profit_pct = get_agent_take_profit_pct()
+    # When volatile is on, enforce a default stop-loss if user didn't set one (limit losses)
+    if get_agent_include_volatile() and stop_loss_pct is None:
+        stop_loss_pct = DEFAULT_STOP_LOSS_PCT_WHEN_VOLATILE
+        add_agent_reasoning("VOLATILE", "guardrail", f"Volatile on: using default stop-loss {stop_loss_pct}% (set your own in Control to override)", {"default_stop_loss_pct": stop_loss_pct})
 
     for symbol in symbols_to_run:
         if not symbol:
@@ -129,6 +143,7 @@ def run_agent_cycle():
                         order_id = recent[0]["id"] if recent else None
                     add_agent_history(symbol, "Sell", 1.0, f"Stop-loss: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%", executed=ok, order_id=order_id, guardrail_triggered=True)
                     add_agent_reasoning(symbol, "stop_loss", f"Stop-loss triggered: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%, sold full position", {"pnl_pct": pnl_pct})
+                    cycle_updates.append(f"🛑 SELL {symbol} (stop-loss) P&L {pnl_pct:.1f}%")
                     continue
                 if take_profit_pct is not None and pnl_pct >= take_profit_pct:
                     ok, _, _ = execute_sell(symbol, pos_qty, current_price)
@@ -138,6 +153,7 @@ def run_agent_cycle():
                         order_id = recent[0]["id"] if recent else None
                     add_agent_history(symbol, "Sell", 1.0, f"Take-profit: P&L {pnl_pct:.1f}% >= {take_profit_pct}%", executed=ok, order_id=order_id, guardrail_triggered=True)
                     add_agent_reasoning(symbol, "take_profit", f"Take-profit triggered: P&L {pnl_pct:.1f}% >= {take_profit_pct}%, sold full position", {"pnl_pct": pnl_pct})
+                    cycle_updates.append(f"✅ SELL {symbol} (take-profit) P&L {pnl_pct:.1f}%")
                     continue
 
             closes = _get_closes(symbol)
@@ -174,14 +190,20 @@ def run_agent_cycle():
                 add_agent_reasoning(symbol, "execute", "Skipped: no quote/price", {})
                 continue
 
+            # Cap position size for volatile-only symbols (not in watchlist) to limit risk
+            position_size = decision.position_size
+            if symbol in volatile_only_symbols and position_size > MAX_POSITION_SIZE_VOLATILE_ONLY:
+                position_size = MAX_POSITION_SIZE_VOLATILE_ONLY
+                add_agent_reasoning(symbol, "guardrail", f"Volatile-only symbol: position size capped to {MAX_POSITION_SIZE_VOLATILE_ONLY:.0%} of cash", {"capped": True})
+
             cash = get_cash_balance()
             position = get_position(symbol)
             pos_qty = float(position["quantity"]) if position else 0
 
             order_id = None
             if decision.action == "Buy":
-                # Position size as fraction of cash to deploy
-                amount = cash * decision.position_size
+                # Position size as fraction of cash to deploy (already capped for volatile-only)
+                amount = cash * position_size
                 quantity = amount / current_price if current_price else 0
                 if quantity > 0 and amount <= cash:
                     ok, _, _ = execute_buy(symbol, quantity, current_price)
@@ -189,6 +211,7 @@ def run_agent_cycle():
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
                         add_agent_reasoning(symbol, "execute", f"Executed buy {quantity:.4f} @ {current_price}", {"order_id": order_id})
+                        cycle_updates.append(f"📈 BUY {symbol} {quantity:.2f} @ ${current_price:.2f}")
                     else:
                         add_agent_reasoning(symbol, "execute", "Buy failed (e.g. insufficient cash)", {})
             elif decision.action == "Sell" and pos_qty > 0:
@@ -200,6 +223,7 @@ def run_agent_cycle():
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
                         add_agent_reasoning(symbol, "execute", f"Executed sell {sell_qty:.4f} @ {current_price}", {"order_id": order_id})
+                        cycle_updates.append(f"📉 SELL {symbol} {sell_qty:.2f} @ ${current_price:.2f}")
                     else:
                         add_agent_reasoning(symbol, "execute", "Sell failed", {})
 
@@ -208,3 +232,10 @@ def run_agent_cycle():
         except Exception as e:
             logger.exception("Agent cycle error for %s: %s", symbol, e)
             add_agent_reasoning(symbol, "error", str(e), {})
+
+    if cycle_updates:
+        from datetime import datetime
+        header = f"🤖 Trading Agent — {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC\n"
+        body = "\n".join(cycle_updates)
+        msg = header + body
+        send_telegram_message(msg)

@@ -49,6 +49,15 @@ export OPEN_ROUTER_TRADER_API_KEY=your_key
 export OPEN_ROUTER_API_KEY=your_key
 ```
 
+To receive **Telegram notifications** when the agent runs and has updates (buy/sell, stop-loss, take-profit), set your bot token and chat ID:
+
+```bash
+export TELEGRAM_HTTP_API_KEY=your_bot_token
+export TELEGRAM_CHAT_ID=your_chat_id
+```
+
+(Get your chat ID by messaging [@userinfobot](https://t.me/userinfobot) or by starting a chat with your bot and calling `getUpdates` on the Bot API.)
+
 ### Frontend
 
 ```bash
