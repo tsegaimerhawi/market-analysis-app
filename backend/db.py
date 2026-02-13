@@ -373,6 +373,60 @@ def set_agent_enabled(enabled):
         conn.commit()
 
 
+def get_agent_include_volatile():
+    """Return True if agent should also trade volatile stocks (not in watchlist)."""
+    with _conn() as conn:
+        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'include_volatile'").fetchone()
+        return (row and row["value"] == "1")
+
+
+def set_agent_include_volatile(include):
+    """Set whether to include volatile stocks in agent cycle."""
+    with _conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('include_volatile', ?)", ("1" if include else "0",))
+        conn.commit()
+
+
+def get_agent_stop_loss_pct():
+    """Return stop-loss percentage (e.g. 5 = sell if position down 5%). None if disabled."""
+    with _conn() as conn:
+        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'stop_loss_pct'").fetchone()
+        if not row or row["value"] is None or row["value"] == "":
+            return None
+        try:
+            return float(row["value"])
+        except (TypeError, ValueError):
+            return None
+
+
+def set_agent_stop_loss_pct(pct):
+    """Set stop-loss percentage. None or 0 to disable."""
+    val = str(pct) if pct is not None and float(pct) > 0 else ""
+    with _conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('stop_loss_pct', ?)", (val,))
+        conn.commit()
+
+
+def get_agent_take_profit_pct():
+    """Return take-profit percentage (e.g. 10 = sell if position up 10%). None if disabled."""
+    with _conn() as conn:
+        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'take_profit_pct'").fetchone()
+        if not row or row["value"] is None or row["value"] == "":
+            return None
+        try:
+            return float(row["value"])
+        except (TypeError, ValueError):
+            return None
+
+
+def set_agent_take_profit_pct(pct):
+    """Set take-profit percentage. None or 0 to disable."""
+    val = str(pct) if pct is not None and float(pct) > 0 else ""
+    with _conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('take_profit_pct', ?)", (val,))
+        conn.commit()
+
+
 def add_agent_reasoning(symbol, step, message, data=None):
     """Append a reasoning step for the UI."""
     with _conn() as conn:

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaRobot, FaCog, FaHistory, FaBrain, FaPlay, FaToggleOn, FaToggleOff } from "react-icons/fa";
+import { FaRobot, FaCog, FaHistory, FaBrain, FaPlay, FaToggleOn, FaToggleOff, FaChartLine, FaShieldAlt } from "react-icons/fa";
 import "./TradingAgent.css";
 
 const API_BASE = "http://localhost:5001";
 
 export default function TradingAgent() {
   const [enabled, setEnabled] = useState(false);
+  const [includeVolatile, setIncludeVolatile] = useState(false);
+  const [volatileSymbols, setVolatileSymbols] = useState([]);
+  const [stopLossPct, setStopLossPct] = useState("");
+  const [takeProfitPct, setTakeProfitPct] = useState("");
   const [loading, setLoading] = useState(false);
   const [reasoning, setReasoning] = useState([]);
   const [history, setHistory] = useState([]);
@@ -15,7 +19,16 @@ export default function TradingAgent() {
   const [error, setError] = useState(null);
 
   const loadStatus = () => {
-    axios.get(`${API_BASE}/api/agent/status`).then((res) => setEnabled(res.data.enabled)).catch(() => setEnabled(false));
+    axios.get(`${API_BASE}/api/agent/status`).then((res) => {
+      setEnabled(res.data.enabled);
+      setIncludeVolatile(!!res.data.include_volatile);
+      setStopLossPct(res.data.stop_loss_pct != null ? String(res.data.stop_loss_pct) : "");
+      setTakeProfitPct(res.data.take_profit_pct != null ? String(res.data.take_profit_pct) : "");
+    }).catch(() => { setEnabled(false); setIncludeVolatile(false); setStopLossPct(""); setTakeProfitPct(""); });
+  };
+
+  const loadVolatileSymbols = () => {
+    axios.get(`${API_BASE}/api/agent/volatile-symbols`).then((res) => setVolatileSymbols(res.data.symbols || [])).catch(() => setVolatileSymbols([]));
   };
 
   const loadReasoning = () => {
@@ -30,6 +43,7 @@ export default function TradingAgent() {
 
   useEffect(() => {
     loadStatus();
+    loadVolatileSymbols();
   }, []);
 
   useEffect(() => {
@@ -49,8 +63,36 @@ export default function TradingAgent() {
       .post(`${API_BASE}/api/agent/status`, { enabled: !enabled })
       .then((res) => {
         setEnabled(res.data.enabled);
+        setIncludeVolatile(!!res.data.include_volatile);
       })
       .catch((err) => setError(err.response?.data?.error || err.message || "Failed to update"))
+      .finally(() => setLoading(false));
+  };
+
+  const handleIncludeVolatileToggle = () => {
+    setLoading(true);
+    setError(null);
+    axios
+      .post(`${API_BASE}/api/agent/status`, { include_volatile: !includeVolatile })
+      .then((res) => {
+        setIncludeVolatile(!!res.data.include_volatile);
+      })
+      .catch((err) => setError(err.response?.data?.error || err.message || "Failed to update"))
+      .finally(() => setLoading(false));
+  };
+
+  const saveStopLossTakeProfit = () => {
+    setLoading(true);
+    setError(null);
+    const sl = stopLossPct.trim() ? parseFloat(stopLossPct) : null;
+    const tp = takeProfitPct.trim() ? parseFloat(takeProfitPct) : null;
+    axios
+      .post(`${API_BASE}/api/agent/status`, { stop_loss_pct: sl, take_profit_pct: tp })
+      .then((res) => {
+        setStopLossPct(res.data.stop_loss_pct != null ? String(res.data.stop_loss_pct) : "");
+        setTakeProfitPct(res.data.take_profit_pct != null ? String(res.data.take_profit_pct) : "");
+      })
+      .catch((err) => setError(err.response?.data?.error || err.message || "Failed to save"))
       .finally(() => setLoading(false));
   };
 
@@ -103,13 +145,67 @@ export default function TradingAgent() {
                 <span className="ms-1">{enabled ? "On" : "Off"}</span>
               </button>
             </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="fw-bold">Volatile stocks</span>
+              <button
+                type="button"
+                className={`btn btn-sm ${includeVolatile ? "btn-warning" : "btn-outline-secondary"}`}
+                onClick={handleIncludeVolatileToggle}
+                disabled={loading}
+                title="Also buy/sell volatile stocks not in your watchlist"
+              >
+                {includeVolatile ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
+                <span className="ms-1">{includeVolatile ? "On" : "Off"}</span>
+              </button>
+            </div>
             <button type="button" className="btn btn-outline-primary btn-sm" onClick={handleRunNow} disabled={runNowLoading}>
               <FaPlay className="me-1" /> {runNowLoading ? "Running…" : "Run cycle now"}
             </button>
           </div>
+          <div className="row g-2 align-items-end mt-3">
+            <div className="col-auto">
+              <label className="form-label small mb-0">Stop-loss %</label>
+              <input
+                type="number"
+                className="form-control form-control-sm"
+                style={{ width: 80 }}
+                min="0"
+                step="0.5"
+                placeholder="e.g. 5"
+                value={stopLossPct}
+                onChange={(e) => setStopLossPct(e.target.value)}
+              />
+            </div>
+            <div className="col-auto">
+              <label className="form-label small mb-0">Take-profit %</label>
+              <input
+                type="number"
+                className="form-control form-control-sm"
+                style={{ width: 80 }}
+                min="0"
+                step="0.5"
+                placeholder="e.g. 10"
+                value={takeProfitPct}
+                onChange={(e) => setTakeProfitPct(e.target.value)}
+              />
+            </div>
+            <div className="col-auto">
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={saveStopLossTakeProfit} disabled={loading}>
+                <FaShieldAlt className="me-1" /> Save
+              </button>
+            </div>
+          </div>
           <p className="small text-muted mb-0 mt-2">
-            When on, the agent runs every 5 minutes over your watchlist and may place paper buy/sell orders based on the ensemble decision.
+            When on, the agent runs every 5 minutes over your watchlist. Enable <strong>Volatile stocks</strong> to also trade symbols chosen by the <strong>8-hour volatility algorithm</strong> (small-cap bias). Volatile list is computed from recent market data, not a fixed list.
           </p>
+          <p className="small text-muted mb-0 mt-1">
+            <FaShieldAlt className="me-1" /> <strong>Stop-loss</strong>: sell full position if P&amp;L ≤ -X%. <strong>Take-profit</strong>: sell full position if P&amp;L ≥ Y%. Leave blank to disable. Applies to all agent positions.
+          </p>
+          {includeVolatile && volatileSymbols.length > 0 && (
+            <p className="small mb-0 mt-1">
+              <FaChartLine className="me-1" /> Current volatile list (8h algo): {volatileSymbols.join(", ")}
+            </p>
+          )}
         </div>
       </section>
 

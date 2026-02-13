@@ -26,6 +26,12 @@ from db import (
     cancel_limit_order,
     get_agent_enabled,
     set_agent_enabled,
+    get_agent_include_volatile,
+    set_agent_include_volatile,
+    get_agent_stop_loss_pct,
+    set_agent_stop_loss_pct,
+    get_agent_take_profit_pct,
+    set_agent_take_profit_pct,
     get_agent_reasoning,
     get_agent_history,
 )
@@ -365,17 +371,53 @@ def api_limit_order_cancel(order_id):
 
 @app.route("/api/agent/status", methods=["GET"])
 def api_agent_status():
-    """Return whether the auto-trading agent is enabled."""
-    return jsonify({"enabled": get_agent_enabled()})
+    """Return agent enabled, include_volatile, stop_loss_pct, take_profit_pct."""
+    return jsonify({
+        "enabled": get_agent_enabled(),
+        "include_volatile": get_agent_include_volatile(),
+        "stop_loss_pct": get_agent_stop_loss_pct(),
+        "take_profit_pct": get_agent_take_profit_pct(),
+    })
 
 
 @app.route("/api/agent/status", methods=["POST"])
 def api_agent_set_status():
-    """Turn agent on or off. Body: { "enabled": true|false }."""
+    """Turn agent on/off, include_volatile, stop_loss_pct, take_profit_pct. Body: { "enabled", "include_volatile", "stop_loss_pct", "take_profit_pct" }."""
     data = request.get_json(silent=True) or {}
-    enabled = bool(data.get("enabled"))
-    set_agent_enabled(enabled)
-    return jsonify({"enabled": get_agent_enabled()})
+    if "enabled" in data:
+        set_agent_enabled(bool(data["enabled"]))
+    if "include_volatile" in data:
+        set_agent_include_volatile(bool(data["include_volatile"]))
+    if "stop_loss_pct" in data:
+        v = data["stop_loss_pct"]
+        set_agent_stop_loss_pct(float(v) if v is not None and str(v).strip() else None)
+    if "take_profit_pct" in data:
+        v = data["take_profit_pct"]
+        set_agent_take_profit_pct(float(v) if v is not None and str(v).strip() else None)
+    return jsonify({
+        "enabled": get_agent_enabled(),
+        "include_volatile": get_agent_include_volatile(),
+        "stop_loss_pct": get_agent_stop_loss_pct(),
+        "take_profit_pct": get_agent_take_profit_pct(),
+    })
+
+
+@app.route("/api/agent/volatile-symbols", methods=["GET"])
+def api_agent_volatile_symbols():
+    """Return volatile symbols from 8h volatility algorithm (candidates from data/volatile_symbols.json). Query: scores=1 for volatility scores."""
+    try:
+        from services.volatility_scanner import get_candidate_symbols_from_file, get_volatile_symbols_with_scores, get_volatile_symbols
+        candidates = get_candidate_symbols_from_file()
+        if not candidates:
+            return jsonify({"symbols": [], "source": "algorithm"})
+        if request.args.get("scores") == "1":
+            ranked = get_volatile_symbols_with_scores(candidates, top_n=25)
+            return jsonify({"symbols": [r["symbol"] for r in ranked], "with_scores": ranked, "source": "algorithm"})
+        symbols = get_volatile_symbols(candidates, top_n=25)
+        return jsonify({"symbols": symbols, "source": "algorithm"})
+    except Exception as e:
+        logger.exception("volatile-symbols failed: %s", e)
+        return jsonify({"symbols": [], "error": str(e)})
 
 
 @app.route("/api/agent/reasoning", methods=["GET"])

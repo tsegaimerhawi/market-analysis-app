@@ -1,7 +1,8 @@
 """
 Single-cycle runner for the trading agent. Called when agent is enabled (e.g. by a scheduler or thread).
-Gathers data for each watchlist symbol, runs TradeOrchestrator, logs reasoning, and executes paper trades.
+Gathers data for each symbol (watchlist + optional volatile list), runs TradeOrchestrator, logs reasoning, and executes paper trades.
 """
+import json
 import sys
 import os
 
@@ -18,8 +19,14 @@ from db import (
     add_agent_reasoning,
     add_agent_history,
     get_agent_enabled,
+    get_agent_include_volatile,
+    get_agent_stop_loss_pct,
+    get_agent_take_profit_pct,
+    set_last_agent_history_executed,
+    get_orders,
 )
 from services.company_service import get_history, get_quote
+from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file
 from agents.trade_orchestrator import TradeOrchestrator
 from agents.llm_manager import LLMManager
 from agents.lstm_predictor import LSTMPredictor
@@ -59,16 +66,35 @@ def _volatility_from_closes(closes):
     return (var * 252) ** 0.5  # annualized
 
 
+def _get_volatile_symbols_dynamic():
+    """Compute volatile symbols from 8h market data (algorithm + small-cap bias). Uses candidates from volatile_symbols.json."""
+    candidates = get_candidate_symbols_from_file()
+    if not candidates:
+        return []
+    return get_volatile_symbols(candidates, top_n=25)
+
+
 def run_agent_cycle():
     """
-    Run one full cycle: for each watchlist symbol, run orchestrator, log reasoning, execute if Buy/Sell.
+    Run one full cycle: for each symbol (watchlist + optional volatile list), run orchestrator, log reasoning, execute if Buy/Sell.
     """
     if not get_agent_enabled():
         return
 
     watchlist = get_watchlist()
-    if not watchlist:
-        logger.debug("Agent cycle: no watchlist symbols")
+    watchlist_symbols = {(item.get("symbol") or "").strip().upper() for item in watchlist if (item.get("symbol") or "").strip()}
+
+    # Optionally add volatile symbols (from 8h volatility algorithm) that are NOT in watchlist
+    symbols_to_run = list(watchlist_symbols)
+    if get_agent_include_volatile():
+        volatile = _get_volatile_symbols_dynamic()
+        extra = [s for s in volatile if s and s not in watchlist_symbols]
+        symbols_to_run = symbols_to_run + extra
+        if extra:
+            add_agent_reasoning("VOLATILE", "volatile", f"Added {len(extra)} volatile symbols (8h algo + small-cap bias): {', '.join(extra[:10])}{'...' if len(extra) > 10 else ''}", {"count": len(extra), "symbols": extra})
+
+    if not symbols_to_run:
+        logger.debug("Agent cycle: no symbols to run")
         return
 
     llm = LLMManager()
@@ -79,14 +105,42 @@ def run_agent_cycle():
         on_reasoning=_reasoning_callback,
     )
 
-    for item in watchlist:
-        symbol = (item.get("symbol") or "").strip().upper()
+    stop_loss_pct = get_agent_stop_loss_pct()
+    take_profit_pct = get_agent_take_profit_pct()
+
+    for symbol in symbols_to_run:
         if not symbol:
             continue
         try:
-            closes = _get_closes(symbol)
             quote = get_quote(symbol)
             current_price = quote.get("price") if quote else None
+            position = get_position(symbol)
+            pos_qty = float(position["quantity"]) if position else 0
+            avg_cost = float(position["avg_cost"]) if position else None
+
+            # --- Stop-loss / Take-profit (limit losses, lock profit on volatile positions) ---
+            if position and current_price and avg_cost and avg_cost > 0 and pos_qty > 0:
+                pnl_pct = (current_price - avg_cost) / avg_cost * 100
+                if stop_loss_pct is not None and pnl_pct <= -stop_loss_pct:
+                    ok, _, _ = execute_sell(symbol, pos_qty, current_price)
+                    order_id = None
+                    if ok:
+                        recent = get_orders(limit=1)
+                        order_id = recent[0]["id"] if recent else None
+                    add_agent_history(symbol, "Sell", 1.0, f"Stop-loss: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%", executed=ok, order_id=order_id, guardrail_triggered=True)
+                    add_agent_reasoning(symbol, "stop_loss", f"Stop-loss triggered: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%, sold full position", {"pnl_pct": pnl_pct})
+                    continue
+                if take_profit_pct is not None and pnl_pct >= take_profit_pct:
+                    ok, _, _ = execute_sell(symbol, pos_qty, current_price)
+                    order_id = None
+                    if ok:
+                        recent = get_orders(limit=1)
+                        order_id = recent[0]["id"] if recent else None
+                    add_agent_history(symbol, "Sell", 1.0, f"Take-profit: P&L {pnl_pct:.1f}% >= {take_profit_pct}%", executed=ok, order_id=order_id, guardrail_triggered=True)
+                    add_agent_reasoning(symbol, "take_profit", f"Take-profit triggered: P&L {pnl_pct:.1f}% >= {take_profit_pct}%, sold full position", {"pnl_pct": pnl_pct})
+                    continue
+
+            closes = _get_closes(symbol)
             volatility = _volatility_from_closes(closes) if closes else None
             # Stub headlines and macro (in production, plug in news API and macro data)
             headlines = [f"Market update for {symbol}"]
@@ -132,7 +186,6 @@ def run_agent_cycle():
                 if quantity > 0 and amount <= cash:
                     ok, _, _ = execute_buy(symbol, quantity, current_price)
                     if ok:
-                        from db import get_orders
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
                         add_agent_reasoning(symbol, "execute", f"Executed buy {quantity:.4f} @ {current_price}", {"order_id": order_id})
@@ -144,16 +197,13 @@ def run_agent_cycle():
                 if sell_qty > 0:
                     ok, _, _ = execute_sell(symbol, sell_qty, current_price)
                     if ok:
-                        from db import get_orders
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
                         add_agent_reasoning(symbol, "execute", f"Executed sell {sell_qty:.4f} @ {current_price}", {"order_id": order_id})
                     else:
                         add_agent_reasoning(symbol, "execute", "Sell failed", {})
 
-            # Update last history row to executed if we placed an order
             if order_id is not None:
-                from db import set_last_agent_history_executed
                 set_last_agent_history_executed(symbol, order_id)
         except Exception as e:
             logger.exception("Agent cycle error for %s: %s", symbol, e)
