@@ -16,12 +16,21 @@ OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
 def _get_client():
-    """Lazy import of OpenAI client configured for OpenRouter."""
+    """Lazy import of OpenAI client configured for OpenRouter.
+    Use explicit httpx.Client() to avoid OpenAI passing deprecated 'proxies' to httpx 0.28+.
+    """
     try:
         from openai import OpenAI
-    except ImportError:
-        raise ImportError("openai package required for LLM agents. pip install openai")
-    return OpenAI(base_url=OPENROUTER_BASE, api_key=OPENROUTER_API_KEY or "dummy")
+        import httpx
+    except ImportError as e:
+        raise ImportError("openai and httpx required for LLM agents. pip install openai httpx") from e
+    # Pass our own client so OpenAI doesn't inject 'proxies' (breaks on httpx 0.28+)
+    http_client = httpx.Client()
+    return OpenAI(
+        base_url=OPENROUTER_BASE,
+        api_key=OPENROUTER_API_KEY or "dummy",
+        http_client=http_client,
+    )
 
 
 class LLMManager:
