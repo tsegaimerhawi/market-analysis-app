@@ -29,12 +29,15 @@ def init_db():
         """)
         conn.execute("INSERT OR IGNORE INTO account (id, cash_balance) VALUES (1, ?)", (DEFAULT_PAPER_CASH,))
         try:
-            conn.execute("ALTER TABLE account ADD COLUMN initial_balance REAL DEFAULT ?", (DEFAULT_PAPER_CASH,))
+            conn.execute(f"ALTER TABLE account ADD COLUMN initial_balance REAL DEFAULT {DEFAULT_PAPER_CASH}")
             conn.commit()
         except sqlite3.OperationalError:
             pass
-        conn.execute("UPDATE account SET initial_balance = ? WHERE id = 1 AND initial_balance IS NULL", (DEFAULT_PAPER_CASH,))
-        conn.commit()
+        try:
+            conn.execute("UPDATE account SET initial_balance = ? WHERE id = 1 AND initial_balance IS NULL", (DEFAULT_PAPER_CASH,))
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
         conn.execute("""
             CREATE TABLE IF NOT EXISTS portfolio (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
