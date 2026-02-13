@@ -31,7 +31,7 @@ from db import (
     get_orders,
 )
 from services.company_service import get_history, get_quote
-from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file
+from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file, get_normal_symbols_from_file
 from services.telegram_notify import send_message as send_telegram_message
 from agents.trade_orchestrator import TradeOrchestrator
 from agents.llm_manager import LLMManager
@@ -82,20 +82,28 @@ def _get_volatile_symbols_dynamic():
 
 def run_agent_cycle():
     """
-    Run one full cycle: for each symbol (watchlist + optional volatile list), run orchestrator, log reasoning, execute if Buy/Sell.
+    Run one full cycle: for each symbol (watchlist + normal list + optional volatile list), run orchestrator, log reasoning, execute if Buy/Sell.
     """
     if not get_agent_enabled():
         return
 
     watchlist = get_watchlist()
     watchlist_symbols = {(item.get("symbol") or "").strip().upper() for item in watchlist if (item.get("symbol") or "").strip()}
+    normal_symbols = set(get_normal_symbols_from_file())
 
-    # Optionally add volatile symbols (from 8h volatility algorithm) that are NOT in watchlist
+    # Base universe: watchlist + normal list (normal_symbols.json). When volatile is off, agent uses only this.
     symbols_to_run = list(watchlist_symbols)
+    for s in normal_symbols:
+        if s and s not in watchlist_symbols:
+            symbols_to_run.append(s)
+
+    # When both auto-trading and Volatile stocks are on: add volatile list (top 25 from volatile_symbols.json).
+    # Otherwise we use only the normal list (+ watchlist) above.
     volatile_only_symbols = set()
     if get_agent_include_volatile():
         volatile = _get_volatile_symbols_dynamic()
-        extra = [s for s in volatile if s and s not in watchlist_symbols]
+        already = set(symbols_to_run)
+        extra = [s for s in volatile if s and s not in already]
         volatile_only_symbols = set(extra)
         symbols_to_run = symbols_to_run + extra
         if extra:

@@ -418,6 +418,45 @@ def _volatile_universe_path():
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "volatile_universe.json")
 
 
+def _normal_candidates_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "normal_symbols.json")
+
+
+@app.route("/api/normal-candidates", methods=["GET"])
+def api_normal_candidates_get():
+    """Return the normal/stable stock list (normal_symbols.json): e.g. AAPL, NVDA, AMZN, META."""
+    try:
+        path = _normal_candidates_path()
+        if not os.path.isfile(path):
+            return jsonify({"symbols": []})
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        symbols = [str(s).strip().upper() for s in data if s]
+        return jsonify({"symbols": symbols})
+    except Exception as e:
+        logger.exception("normal-candidates get failed: %s", e)
+        return jsonify({"symbols": [], "error": str(e)})
+
+
+@app.route("/api/normal-candidates", methods=["PUT"])
+def api_normal_candidates_put():
+    """Update the normal stock list. Body: { \"symbols\": [\"AAPL\", \"NVDA\", ...] }."""
+    try:
+        data = request.get_json(silent=True) or {}
+        symbols = data.get("symbols")
+        if not isinstance(symbols, list):
+            return jsonify({"error": "Body must include 'symbols' array"}), 400
+        normalized = list(dict.fromkeys([str(s).strip().upper() for s in symbols if str(s).strip()]))
+        path = _normal_candidates_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(normalized, f, indent=2)
+        return jsonify({"symbols": normalized, "message": "Saved"})
+    except Exception as e:
+        logger.exception("normal-candidates put failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/volatile-candidates", methods=["GET"])
 def api_volatile_candidates_get():
     """Return the current candidate list (volatile_symbols.json) used by the volatility scanner."""

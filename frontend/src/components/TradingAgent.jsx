@@ -200,7 +200,7 @@ export default function TradingAgent() {
             </div>
           </div>
           <p className="small text-muted mb-0 mt-2">
-            When on, the agent runs every 5 minutes over your watchlist. Enable <strong>Volatile stocks</strong> to also trade symbols chosen by the <strong>8-hour volatility algorithm</strong> (small-cap bias). Volatile list is computed from recent market data, not a fixed list.
+            When on, the agent runs every 5 minutes over your <strong>watchlist</strong> + <strong>Normal symbols</strong> (e.g. AAPL, NVDA, AMZN). Enable <strong>Volatile stocks</strong> to also trade the top 25 from the volatile list (8h algorithm).
           </p>
           <p className="small text-muted mb-0 mt-1">
             <FaShieldAlt className="me-1" /> <strong>Stop-loss</strong>: sell full position if P&amp;L ≤ -X%. <strong>Take-profit</strong>: sell full position if P&amp;L ≥ Y%. Leave blank to disable. Applies to all agent positions.

@@ -178,3 +178,14 @@ def get_candidate_symbols_from_file() -> List[str]:
         return [str(s).strip().upper() for s in data if s]
     except Exception:
         return []
+
+
+def get_normal_symbols_from_file() -> List[str]:
+    """Load normal/stable stock symbols from data/normal_symbols.json (e.g. AAPL, NVDA, AMZN, META)."""
+    path = os.path.join(os.path.dirname(__file__), "..", "data", "normal_symbols.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return [str(s).strip().upper() for s in data if s]
+    except Exception:
+        return []

@@ -66,6 +66,13 @@ export default function SideBar({ activeView, setActiveView }) {
             </button>
             <button
               type="button"
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "normal_symbols" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("normal_symbols")}
+            >
+              Normal Symbols
+            </button>
+            <button
+              type="button"
               className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "volatile_symbols" ? "active fw-bold" : "text-dark"}`}
               onClick={() => setActiveView("volatile_symbols")}
             >
