@@ -1,70 +1,87 @@
-# Getting Started with Create React App
+# Market Analysis App — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React frontend for the **Market Analysis App**: stock watchlist, multi-algorithm analysis, future predictions, and paper trading (portfolio, orders, limit orders).
 
-## Available Scripts
+## Tech stack
 
-In the project directory, you can run:
+- **React** 19
+- **Bootstrap 5** — layout and components
+- **Recharts** — price and prediction charts
+- **Axios** — API requests
+- **react-icons** — UI icons
 
-### `npm start`
+The app expects the [backend](../backend) API at `http://localhost:5000`. Start the backend before or with the frontend.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Project structure
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```
+src/
+├── App.js                 # Root component
+├── App.css
+├── index.js
+└── components/
+    ├── Main.jsx            # Layout + view router
+    ├── SideBar.jsx          # Navigation
+    ├── Watchlist.jsx       # Add/remove companies, company info, Trade shortcut
+    ├── CompanyInfo.jsx      # Full company details (yfinance)
+    ├── StockAnalysis.jsx    # Algorithm comparison (MAE, RMSE, charts)
+    ├── FuturePrediction.js  # Ensemble forecast, consensus, ground truth chart
+    ├── Portfolio.jsx        # Cash, positions, P&L, orders, reset, deposit/withdraw, export CSV
+    ├── Trade.jsx            # Buy/sell (market + limit), quotes, pending limit orders
+    ├── ScrapeArticles.jsx   # Article scraping UI
+    ├── AlgorithmTutorials.jsx
+    └── *.css
+```
 
-### `npm test`
+## Quick start
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**1. Install dependencies**
 
-### `npm run build`
+```bash
+npm install
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**2. Start the backend** (from repo root)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+API: `http://localhost:5000`
 
-### `npm run eject`
+**3. Start the frontend**
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+App: [http://localhost:3000](http://localhost:3000)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Available scripts
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+| Command | Description |
+|--------|--------------|
+| `npm start` | Development server at [http://localhost:3000](http://localhost:3000). Hot reload and lint in console. |
+| `npm run build` | Production build into `build/`. Minified, hashed filenames. |
+| `npm test` | Run tests in watch mode. |
+| `npm run eject` | Eject Create React App (one-way; not required). |
 
-## Learn More
+## Features (frontend)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Watchlist** — Manage symbols; open company info or jump to Trade.
+- **Stock Analysis** — Pick symbol, date range, and algorithms; compare metrics and charts.
+- **Future Prediction** — Ensemble forecast, consensus recommendation, brushable chart with actuals.
+- **Portfolio** — Cash, positions with live value and P&L, order history, deposit/withdraw, reset, export CSV.
+- **Trade** — Market and limit orders, live quote, pending limit orders with cancel.
+- **Algorithm Tutorials** — In-app docs for each model.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Configuration
 
-### Code Splitting
+The API base URL is set in components as `http://localhost:5000`. To point to another host (e.g. production), update the `API_BASE` constant in each component that uses it, or introduce a shared config/env variable.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Learn more
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- [Create React App docs](https://create-react-app.dev/docs/getting-started/)
+- [React docs](https://react.dev/)
