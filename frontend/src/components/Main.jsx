@@ -7,6 +7,7 @@ import FuturePrediction from "./FuturePrediction";
 import Portfolio from "./Portfolio";
 import Trade from "./Trade";
 import TradingAgent from "./TradingAgent";
+import VolatileSymbols from "./VolatileSymbols";
 
 export default function Main() {
   const [activeView, setActiveView] = useState("watchlist");
@@ -24,6 +25,7 @@ export default function Main() {
           {activeView === "portfolio" && <Portfolio />}
           {activeView === "trade" && <Trade initialSymbol={tradeSymbol} onConsumeSymbol={() => setTradeSymbol("")} />}
           {activeView === "agent" && <TradingAgent />}
+          {activeView === "volatile_symbols" && <VolatileSymbols />}
         </div>
       </div>
     </div>

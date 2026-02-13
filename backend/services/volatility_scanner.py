@@ -15,6 +15,8 @@ SMALL_CAP_CUTOFF = 50_000_000_000  # 50B
 HOURS_LOOKBACK = 8
 # Min number of price bars required to compute volatility
 MIN_BARS = 4
+# Symbols to always include in the volatile list when they're in candidates and have valid data (e.g. high-interest names)
+ALWAYS_INCLUDE_IN_VOLATILE = ["GME", "AMC"]
 
 
 def _get_intraday_closes(symbol: str, interval: str = "1h", period: str = "5d") -> Optional[List[float]]:
@@ -109,8 +111,11 @@ def get_volatile_symbols(
 ) -> List[str]:
     """
     Rank candidates by 8-hour volatility (with small-cap bias) and return top N.
+    Symbols in ALWAYS_INCLUDE_IN_VOLATILE (e.g. GME, AMC) are included first when they have valid data.
     candidate_symbols: list of tickers to scan (e.g. from volatile_symbols.json).
     """
+    candidates_set = {(s or "").strip().upper() for s in candidate_symbols if (s or "").strip()}
+    always = [s for s in ALWAYS_INCLUDE_IN_VOLATILE if (s or "").strip().upper() in candidates_set]
     results = []
     for sym in candidate_symbols:
         sym = (sym or "").strip().upper()
@@ -125,7 +130,22 @@ def get_volatile_symbols(
         except Exception as e:
             logger.debug("volatility_scanner skip %s: %s", sym, e)
     results.sort(key=lambda x: x[1], reverse=True)
-    return [s for s, _ in results[:top_n]]
+    # Build list: always-include first (if they have data), then fill with top by score
+    ordered = []
+    seen = set()
+    for s in always:
+        for sym, score in results:
+            if sym == s and sym not in seen:
+                ordered.append(sym)
+                seen.add(sym)
+                break
+    for sym, _ in results:
+        if len(ordered) >= top_n:
+            break
+        if sym not in seen:
+            ordered.append(sym)
+            seen.add(sym)
+    return ordered[:top_n]
 
 
 def get_volatile_symbols_with_scores(

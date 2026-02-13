@@ -1,0 +1,31 @@
+.volatile-symbols-page .volatile-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.volatile-symbols-page .volatile-page-header .subtitle {
+  font-size: 0.95rem;
+}
+
+.volatile-symbols-list ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.volatile-symbol-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background: var(--bs-light, #f8f9fa);
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.volatile-symbol-tag .btn-link {
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+.volatile-symbol-tag .btn-link:hover {
+  opacity: 1;
+}

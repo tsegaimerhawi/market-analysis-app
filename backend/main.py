@@ -410,6 +410,74 @@ def api_agent_set_status():
     })
 
 
+def _volatile_candidates_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "volatile_symbols.json")
+
+
+def _volatile_universe_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "volatile_universe.json")
+
+
+@app.route("/api/volatile-candidates", methods=["GET"])
+def api_volatile_candidates_get():
+    """Return the current candidate list (volatile_symbols.json) used by the volatility scanner."""
+    try:
+        path = _volatile_candidates_path()
+        if not os.path.isfile(path):
+            return jsonify({"symbols": []})
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        symbols = [str(s).strip().upper() for s in data if s]
+        return jsonify({"symbols": symbols})
+    except Exception as e:
+        logger.exception("volatile-candidates get failed: %s", e)
+        return jsonify({"symbols": [], "error": str(e)})
+
+
+@app.route("/api/volatile-candidates", methods=["PUT"])
+def api_volatile_candidates_put():
+    """Update the candidate list. Body: { \"symbols\": [\"AAPL\", \"GME\", ...] }."""
+    try:
+        data = request.get_json(silent=True) or {}
+        symbols = data.get("symbols")
+        if not isinstance(symbols, list):
+            return jsonify({"error": "Body must include 'symbols' array"}), 400
+        normalized = list(dict.fromkeys([str(s).strip().upper() for s in symbols if str(s).strip()]))
+        path = _volatile_candidates_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(normalized, f, indent=2)
+        return jsonify({"symbols": normalized, "message": "Saved"})
+    except Exception as e:
+        logger.exception("volatile-candidates put failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/volatile-candidates/refresh-from-universe", methods=["POST"])
+def api_volatile_candidates_refresh():
+    """Scan volatile_universe.json with the 8h volatility algo, take top N, and update volatile_symbols.json."""
+    try:
+        universe_path = _volatile_universe_path()
+        if not os.path.isfile(universe_path):
+            return jsonify({"error": "data/volatile_universe.json not found"}), 404
+        with open(universe_path, "r", encoding="utf-8") as f:
+            universe = json.load(f)
+        candidates = [str(s).strip().upper() for s in universe if s]
+        if not candidates:
+            return jsonify({"error": "volatile_universe.json is empty"}), 400
+        from services.volatility_scanner import get_volatile_symbols
+        top_n = min(int(request.args.get("top_n", 40)), 100)
+        symbols = get_volatile_symbols(candidates, top_n=top_n)
+        path = _volatile_candidates_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(symbols, f, indent=2)
+        return jsonify({"symbols": symbols, "message": f"Updated from universe (top {len(symbols)} by volatility)"})
+    except Exception as e:
+        logger.exception("volatile-candidates refresh failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/agent/volatile-symbols", methods=["GET"])
 def api_agent_volatile_symbols():
     """Return volatile symbols from 8h volatility algorithm (candidates from data/volatile_symbols.json). Query: scores=1 for volatility scores."""

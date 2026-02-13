@@ -64,6 +64,13 @@ export default function SideBar({ activeView, setActiveView }) {
             >
               Trading Agent
             </button>
+            <button
+              type="button"
+              className={`nav-link text-start border-0 bg-transparent rounded px-3 py-2 ${activeView === "volatile_symbols" ? "active fw-bold" : "text-dark"}`}
+              onClick={() => setActiveView("volatile_symbols")}
+            >
+              Volatile Symbols
+            </button>
           </nav>
 
           <hr />
