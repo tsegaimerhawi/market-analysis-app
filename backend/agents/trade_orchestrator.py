@@ -11,12 +11,14 @@ from agents.models import (
 )
 from agents.lstm_predictor import LSTMPredictor
 from agents.xgboost_analyst import XGBoostAnalyst
+from agents.technical_analyst import TechnicalAnalyst
 from agents.llm_manager import LLMManager
 from utils.logger import logger
 
 # Weights for ensemble (must sum to 1.0)
-WEIGHT_LSTM = 0.40
-WEIGHT_XGBOOST = 0.20
+WEIGHT_LSTM = 0.35
+WEIGHT_XGBOOST = 0.15
+WEIGHT_TECHNICAL = 0.10
 WEIGHT_SENTIMENT = 0.30
 WEIGHT_MACRO = 0.10
 
@@ -31,11 +33,13 @@ class TradeOrchestrator:
         self,
         lstm: Optional[LSTMPredictor] = None,
         xgb: Optional[XGBoostAnalyst] = None,
+        technical: Optional[TechnicalAnalyst] = None,
         llm: Optional[LLMManager] = None,
         on_reasoning: Optional[Callable[[str, str, dict], None]] = None,
     ):
         self.lstm = lstm or LSTMPredictor()
         self.xgb = xgb or XGBoostAnalyst()
+        self.technical = technical or TechnicalAnalyst()
         self.llm = llm or LLMManager()
         self.on_reasoning = on_reasoning  # callback(symbol, step, message, data) for logging
 
@@ -106,15 +110,18 @@ class TradeOrchestrator:
                 confidence=0.0,
                 reason=reason,
                 guardrail_triggered=True,
-                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
             )
 
-        # 2) Local ML/DL signals (numerical)
+        # 2) Local ML/DL and technical signals (numerical)
         lstm_signal = self.lstm.predict(symbol, history_closes)
         self._log(symbol, "lstm", f"LSTM confidence={lstm_signal.confidence_score:.3f}, delta={lstm_signal.predicted_price_delta:.4f}", lstm_signal.model_dump())
 
         xgb_signal = self.xgb.predict(symbol, history_closes)
         self._log(symbol, "xgboost", f"XGBoost confidence={xgb_signal.confidence_score:.3f}, delta={xgb_signal.predicted_price_delta:.4f}", xgb_signal.model_dump())
+
+        technical_signal = self.technical.predict(symbol, history_closes)
+        self._log(symbol, "technical", f"Technical (RSI/MACD/BB) confidence={technical_signal.confidence_score:.3f}", technical_signal.model_dump())
 
         # 3) LLM agents (text -> structured)
         sentiment = self.llm.get_sentiment(headlines or [], symbol)
@@ -127,17 +134,19 @@ class TradeOrchestrator:
         composite = (
             WEIGHT_LSTM * lstm_signal.confidence_score
             + WEIGHT_XGBOOST * xgb_signal.confidence_score
+            + WEIGHT_TECHNICAL * technical_signal.confidence_score
             + WEIGHT_SENTIMENT * sentiment.polarity * sentiment.confidence
             + WEIGHT_MACRO * macro.stance * macro.confidence
         )
         composite = max(-1.0, min(1.0, composite))
         avg_confidence = (
             lstm_signal.confidence_score ** 2 + xgb_signal.confidence_score ** 2
+            + technical_signal.confidence_score ** 2
             + sentiment.confidence + macro.confidence
-        ) / 4
+        ) / 5
         avg_confidence = max(0.0, min(1.0, avg_confidence))
 
-        self._log(symbol, "ensemble", f"Composite score={composite:.3f}, avg_confidence={avg_confidence:.3f}", {"composite": composite, "weights": {"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO}})
+        self._log(symbol, "ensemble", f"Composite score={composite:.3f}, avg_confidence={avg_confidence:.3f}", {"composite": composite, "weights": {"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO}})
 
         # 5) Map score to action
         if composite >= 0.15:
@@ -148,7 +157,7 @@ class TradeOrchestrator:
             action = "Hold"
 
         position_size = self.compute_position_size(abs(composite), avg_confidence) if action != "Hold" else 0.0
-        reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Sentiment={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
+        reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
 
         return TradeDecision(
             action=action,
@@ -156,5 +165,5 @@ class TradeOrchestrator:
             confidence=avg_confidence,
             reason=reason,
             guardrail_triggered=False,
-            weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+            weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
         )
