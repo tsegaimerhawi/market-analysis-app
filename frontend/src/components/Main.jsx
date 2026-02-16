@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SideBar from "./SideBar";
 import Watchlist from "./Watchlist";
 import StockAnalysis from "./StockAnalysis";
@@ -10,9 +10,26 @@ import TradingAgent from "./TradingAgent";
 import VolatileSymbols from "./VolatileSymbols";
 import NormalSymbols from "./NormalSymbols";
 
+const VIEW_STORAGE_KEY = "marketAppActiveView";
+const VALID_VIEWS = ["watchlist", "analysis", "scrape", "future_prediction", "portfolio", "trade", "agent", "normal_symbols", "volatile_symbols"];
+
+function getStoredView() {
+  try {
+    const s = sessionStorage.getItem(VIEW_STORAGE_KEY);
+    if (s && VALID_VIEWS.includes(s)) return s;
+  } catch (e) {}
+  return "watchlist";
+}
+
 export default function Main() {
-  const [activeView, setActiveView] = useState("watchlist");
+  const [activeView, setActiveView] = useState(getStoredView);
   const [tradeSymbol, setTradeSymbol] = useState("");
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(VIEW_STORAGE_KEY, activeView);
+    } catch (e) {}
+  }, [activeView]);
 
   return (
     <div className="d-flex flex-grow-1 min-vh-100">
