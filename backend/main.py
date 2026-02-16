@@ -566,6 +566,27 @@ def api_agent_run_once():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/backtest", methods=["GET"])
+def api_backtest():
+    """Backtest the trading ensemble on historical data. Query: symbol (required), days=90."""
+    symbol = (request.args.get("symbol") or "").strip().upper()
+    if not symbol:
+        return jsonify({"error": "Query parameter 'symbol' required"}), 400
+    try:
+        days = min(int(request.args.get("days", 90)), 365)
+    except (TypeError, ValueError):
+        days = 90
+    try:
+        from backtest_runner import run_backtest
+        result = run_backtest(symbol, days=days)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("Backtest failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/agent/telegram-test", methods=["GET", "POST"])
 def api_agent_telegram_test():
     """Send a test message to Telegram. Returns ok=true if sent, ok=false and error if not (e.g. missing TELEGRAM_HTTP_API_KEY or TELEGRAM_CHAT_ID)."""
