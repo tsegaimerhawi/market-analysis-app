@@ -74,13 +74,21 @@ class TradeOrchestrator:
         composite_score: float,
         confidence: float,
         kelly_fraction: float = 0.25,
+        max_position_cap: float = 0.20,
+        volatility_annual: Optional[float] = None,
+        high_vol_threshold: float = 0.35,
     ) -> float:
         """
-        Position size as fraction of capital (0-1). Uses a simplified Kelly-inspired rule:
-        size = kelly_fraction * composite_score * confidence, clamped to [0, 1].
+        Position size as fraction of capital (0-1). Kelly-inspired, capped at max_position_cap,
+        and reduced when volatility is high.
         """
         raw = kelly_fraction * composite_score * confidence
-        return max(0.0, min(1.0, raw))
+        size = max(0.0, min(1.0, raw))
+        size = min(size, max_position_cap)
+        if volatility_annual is not None and volatility_annual > high_vol_threshold:
+            vol_scale = high_vol_threshold / volatility_annual
+            size = size * vol_scale
+        return max(0.0, min(max_position_cap, size))
 
     def decide(
         self,
@@ -156,7 +164,7 @@ class TradeOrchestrator:
         else:
             action = "Hold"
 
-        position_size = self.compute_position_size(abs(composite), avg_confidence) if action != "Hold" else 0.0
+        position_size = self.compute_position_size(abs(composite), avg_confidence, volatility_annual=volatility_annual) if action != "Hold" else 0.0
         reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
 
         return TradeDecision(
