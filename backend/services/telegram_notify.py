@@ -23,23 +23,57 @@ def _get_config():
     return token, chat_id
 
 
-def send_message(text: str):
+def get_config():
+    """Return (token, chat_id) for use by command handler. Both may be empty."""
+    return _get_config()
+
+
+def get_updates(token, offset=None, timeout=10):
     """
-    Send a text message to the configured Telegram chat.
+    Fetch updates from Telegram (for polling). Returns JSON response with result list of updates.
+    """
+    if not token:
+        return {}
+    url = f"{TELEGRAM_API_BASE}/bot{token}/getUpdates"
+    params = {"timeout": timeout}
+    if offset is not None:
+        params["offset"] = offset
+    try:
+        import httpx
+        with httpx.Client(timeout=float(timeout) + 5) as client:
+            r = client.get(url, params=params)
+            if r.is_success:
+                return r.json() or {}
+    except Exception as e:
+        logger.debug("Telegram getUpdates error: %s", e)
+    return {}
+
+
+def send_message(text: str, chat_id=None, parse_mode=None):
+    """
+    Send a text message to Telegram.
+    If chat_id is provided, send to that chat; otherwise use TELEGRAM_CHAT_ID from config.
+    parse_mode: optional "Markdown" or "HTML" for formatting.
     Returns (True, None) if sent successfully, (False, error_message) otherwise.
     """
-    token, chat_id = _get_config()
-    if not token or not chat_id:
-        logger.debug("Telegram notify skipped: TELEGRAM_HTTP_API_KEY or TELEGRAM_CHAT_ID not set")
-        return False, "TELEGRAM_HTTP_API_KEY or TELEGRAM_CHAT_ID not set"
+    token, config_chat_id = _get_config()
+    if not token:
+        logger.debug("Telegram notify skipped: TELEGRAM_HTTP_API_KEY or TELEGRAM_BOT_TOKEN not set")
+        return False, "TELEGRAM_HTTP_API_KEY or TELEGRAM_BOT_TOKEN not set"
+    dest = chat_id if chat_id is not None else config_chat_id
+    if not dest:
+        logger.debug("Telegram notify skipped: no chat_id (set TELEGRAM_CHAT_ID or pass chat_id)")
+        return False, "TELEGRAM_CHAT_ID not set"
     url = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "disable_web_page_preview": True}
+    payload = {"chat_id": dest, "text": text, "disable_web_page_preview": True}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     try:
         import httpx
         with httpx.Client(timeout=10.0) as client:
             r = client.post(url, json=payload)
             if r.is_success:
-                logger.debug("Telegram notify sent to chat_id=%s", str(chat_id)[:10] + "..." if len(str(chat_id)) > 10 else chat_id)
+                logger.debug("Telegram notify sent to chat_id=%s", str(dest)[:10] + "..." if len(str(dest)) > 10 else dest)
                 return True, None
             # Surface Telegram's error (e.g. "chat not found", "user hasn't started the bot")
             try:

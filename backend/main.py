@@ -658,12 +658,29 @@ def _agent_loop():
             logger.exception("Agent loop error: %s", e)
 
 
+def _telegram_poll_loop():
+    """Poll Telegram for chat commands (buy/sell). process_updates no-ops when TELEGRAM_* not set."""
+    import time
+    from services.telegram_notify import get_config
+    token, chat_id = get_config()
+    if token and chat_id:
+        logger.info("Telegram command polling started (buy/sell from chat)")
+    while True:
+        try:
+            from services.telegram_commands import process_updates
+            process_updates()
+        except Exception as e:
+            logger.exception("Telegram poll error: %s", e)
+        time.sleep(6)
+
+
 if __name__ == "__main__":
     import threading
     # Start background threads in the reloader child (where Flask runs)
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=_volatile_refresh_loop, daemon=True).start()
         threading.Thread(target=_agent_loop, daemon=True).start()
+        threading.Thread(target=_telegram_poll_loop, daemon=True).start()
     port = int(os.environ.get("PORT", 5001))
     try:
         app.run(debug=True, port=port, use_reloader=True, reloader_type="stat")
