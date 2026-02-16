@@ -15,7 +15,7 @@ def _parse_command(text):
     Parse a message into a command or None.
     Returns ("buy"|"sell", symbol, qty_or_all) or None.
     - buy AAPL, buy AAPL 10, /buy AAPL 10 -> ("buy", "AAPL", 10) or ("buy", "AAPL", 1)
-    - sell GME, sell GME all, sell GME 5, /sell GME -> ("sell", "GME", "all") or ("sell", "GME", 5)
+    - sell GME, sell GME all, sell GME 5, sell all GME -> ("sell", "GME", "all") or ("sell", "GME", 5)
     """
     if not text or not isinstance(text, str):
         return None
@@ -31,8 +31,14 @@ def _parse_command(text):
     rest = (parts[1] + " " + parts[2]).strip() if len(parts) > 2 else parts[1].strip()
     if verb not in ("buy", "sell"):
         return None
-    # rest is "SYMBOL" or "SYMBOL 10" or "SYMBOL all"
     tokens = rest.split()
+    # Support "sell all SYMBOL" (e.g. "sell all AAPL")
+    if verb == "sell" and len(tokens) >= 2 and (tokens[0] or "").strip().lower() == "all":
+        symbol = (tokens[1] or "").strip().upper()
+        if symbol and len(symbol) <= 10 and symbol.isalpha():
+            return ("sell", symbol, "all")
+        return None
+    # rest is "SYMBOL" or "SYMBOL 10" or "SYMBOL all"
     symbol = (tokens[0] or "").strip().upper()
     if not symbol or len(symbol) > 10:
         return None
@@ -47,7 +53,7 @@ def _parse_command(text):
             except (ValueError, TypeError):
                 return None
         return ("buy", symbol, qty)
-    # sell
+    # sell: SYMBOL [qty|all]
     qty_or_all = "all"
     if len(tokens) >= 2:
         if tokens[1].strip().lower() == "all":
@@ -132,13 +138,20 @@ def process_updates():
             send_message(
                 "📋 Trading commands (paper trading):\n"
                 "• buy SYMBOL [qty] — e.g. buy AAPL 10 (default 1)\n"
-                "• sell SYMBOL [qty|all] — e.g. sell GME all\n"
+                "• sell SYMBOL [qty|all] — e.g. sell GME all or sell all GME\n"
                 "• /help — this message",
                 chat_id=chat_id,
             )
             continue
         cmd = _parse_command(text)
         if not cmd:
+            # Reply so user knows we saw the message and show correct format
+            send_message(
+                "❓ Use: buy SYMBOL [qty] or sell SYMBOL [qty|all]\n"
+                "Examples: buy AAPL 10 — sell GME all — sell all AAPL\n"
+                "Type /help for full list.",
+                chat_id=chat_id,
+            )
             continue
         action, symbol, qty_or_all = cmd
         reply = None
