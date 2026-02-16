@@ -109,6 +109,13 @@ def run_agent_cycle():
         if extra:
             add_agent_reasoning("VOLATILE", "volatile", f"Added {len(extra)} volatile symbols (8h algo + small-cap bias): {', '.join(extra[:10])}{'...' if len(extra) > 10 else ''}", {"count": len(extra), "symbols": extra})
 
+    # Always include symbols we currently hold: run ensemble on them to decide sell/hold (e.g. volatile names no longer in top list).
+    positions = get_positions()
+    for pos in positions:
+        sym = (pos.get("symbol") or "").strip().upper()
+        if sym and sym not in set(symbols_to_run):
+            symbols_to_run.append(sym)
+
     if not symbols_to_run:
         logger.debug("Agent cycle: no symbols to run")
         return
@@ -241,11 +248,34 @@ def run_agent_cycle():
             logger.exception("Agent cycle error for %s: %s", symbol, e)
             add_agent_reasoning(symbol, "error", str(e), {})
 
+    from datetime import datetime
+    header = f"🤖 Trading Agent — {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC\n"
     if cycle_updates:
-        from datetime import datetime
-        header = f"🤖 Trading Agent — {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC\n"
         body = "\n".join(cycle_updates)
         msg = header + body
-        ok, err = send_telegram_message(msg)
-        if not ok and err:
-            logger.warning("Telegram notify failed: %s", err)
+    else:
+        msg = header + "No trades this cycle (all Hold or no signals). Agent is running.\n"
+
+    # Append portfolio summary: cash, positions value, total
+    cash = get_cash_balance()
+    positions = get_positions()
+    positions_value = 0.0
+    position_lines = []
+    for pos in positions:
+        sym = (pos.get("symbol") or "").strip().upper()
+        qty = float(pos.get("quantity") or 0)
+        quote = get_quote(sym) if sym else None
+        price = float(quote.get("price")) if quote and quote.get("price") is not None else float(pos.get("avg_cost") or 0)
+        val = qty * price
+        positions_value += val
+        position_lines.append(f"  {sym}: {qty:.2f} @ ${price:.2f} = ${val:.2f}")
+    total = cash + positions_value
+    msg += "\n📊 Portfolio\n"
+    msg += f"  Cash: ${cash:,.2f}\n"
+    msg += f"  Positions: ${positions_value:,.2f}\n"
+    if position_lines:
+        msg += "\n".join(position_lines) + "\n"
+    msg += f"  Total: ${total:,.2f}"
+    ok, err = send_telegram_message(msg)
+    if not ok and err:
+        logger.warning("Telegram notify failed: %s", err)
