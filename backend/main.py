@@ -603,7 +603,7 @@ def api_agent_telegram_test():
 
 
 def _refresh_volatile_list():
-    """Update volatile_symbols.json from universe (top 40 by 8h volatility). Called every 30 min."""
+    """Update volatile_symbols.json from universe (top 40 by 8h volatility). Called every 30 min. Sends Telegram notification."""
     try:
         universe_path = _volatile_universe_path()
         if not os.path.isfile(universe_path):
@@ -620,6 +620,16 @@ def _refresh_volatile_list():
         with open(path, "w", encoding="utf-8") as f:
             json.dump(symbols, f, indent=2)
         logger.info("Volatile list updated: %d symbols", len(symbols))
+        # Notify Telegram with volatile stocks update (every 30 min)
+        try:
+            from services.telegram_notify import send_message as send_telegram_message
+            display = ", ".join(symbols[:20])
+            if len(symbols) > 20:
+                display += f" … +{len(symbols) - 20} more"
+            msg = f"📊 Volatile stocks updated (30 min)\n{len(symbols)} symbols: {display}"
+            send_telegram_message(msg)
+        except Exception as te:
+            logger.debug("Telegram volatile update notify skipped: %s", te)
     except Exception as e:
         logger.exception("Volatile list refresh failed: %s", e)
 
