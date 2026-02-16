@@ -581,11 +581,44 @@ def api_agent_telegram_test():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-def _agent_loop():
-    """Background loop: every 6 hours run agent cycle if enabled (re-checks volatile stocks)."""
+def _refresh_volatile_list():
+    """Update volatile_symbols.json from universe (top 40 by 8h volatility). Called every 30 min."""
+    try:
+        universe_path = _volatile_universe_path()
+        if not os.path.isfile(universe_path):
+            return
+        with open(universe_path, "r", encoding="utf-8") as f:
+            universe = json.load(f)
+        candidates = [str(s).strip().upper() for s in universe if s]
+        if not candidates:
+            return
+        from services.volatility_scanner import get_volatile_symbols
+        symbols = get_volatile_symbols(candidates, top_n=40)
+        path = _volatile_candidates_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(symbols, f, indent=2)
+        logger.info("Volatile list updated: %d symbols", len(symbols))
+    except Exception as e:
+        logger.exception("Volatile list refresh failed: %s", e)
+
+
+def _volatile_refresh_loop():
+    """Background loop: update volatile_symbols.json at startup then every 30 minutes."""
     import time
     while True:
-        time.sleep(6 * 3600)  # 6 hours
+        try:
+            _refresh_volatile_list()
+        except Exception as e:
+            logger.exception("Volatile refresh loop error: %s", e)
+        time.sleep(30 * 60)  # 30 min
+
+
+def _agent_loop():
+    """Background loop: every 30 minutes run agent cycle if enabled (24/7 while server runs)."""
+    import time
+    while True:
+        time.sleep(30 * 60)  # 30 min
         try:
             if get_agent_enabled():
                 from agent_runner import run_agent_cycle
@@ -596,10 +629,10 @@ def _agent_loop():
 
 if __name__ == "__main__":
     import threading
-    # Start agent background thread in the reloader child (where Flask runs)
+    # Start background threads in the reloader child (where Flask runs)
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        agent_thread = threading.Thread(target=_agent_loop, daemon=True)
-        agent_thread.start()
+        threading.Thread(target=_volatile_refresh_loop, daemon=True).start()
+        threading.Thread(target=_agent_loop, daemon=True).start()
     port = int(os.environ.get("PORT", 5001))
     try:
         app.run(debug=True, port=port, use_reloader=True, reloader_type="stat")
