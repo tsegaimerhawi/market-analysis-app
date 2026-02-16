@@ -33,6 +33,8 @@ from db import (
 from services.company_service import get_history, get_quote
 from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file, get_normal_symbols_from_file
 from services.telegram_notify import send_message as send_telegram_message
+from services.news_fetcher import get_headlines
+from services.macro_fetcher import get_macro_indicators
 from agents.trade_orchestrator import TradeOrchestrator
 from agents.llm_manager import LLMManager
 from agents.lstm_predictor import LSTMPredictor
@@ -173,9 +175,8 @@ def run_agent_cycle():
 
             closes = _get_closes(symbol)
             volatility = _volatility_from_closes(closes) if closes else None
-            # Stub headlines and macro (in production, plug in news API and macro data)
-            headlines = [f"Market update for {symbol}"]
-            macro_indicators = {"description": "CPI and rates stable; no major macro update."}
+            headlines = get_headlines(symbol)
+            macro_indicators = get_macro_indicators()
 
             decision = orchestrator.decide(
                 symbol=symbol,

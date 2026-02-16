@@ -58,6 +58,8 @@ export TELEGRAM_CHAT_ID=your_chat_id
 
 (Get your chat ID by messaging [@userinfobot](https://t.me/userinfobot) or by starting a chat with your bot and calling `getUpdates` on the Bot API.)
 
+For **real news headlines** (Sentiment agent): set `NEWS_API_KEY` (from [NewsAPI.org](https://newsapi.org)). For **macro data** (Macro agent): set `MACRO_API_KEY` or `ALPHA_VANTAGE_API_KEY`. If unset, stubs are used.
+
 ### Frontend
 
 ```bash
