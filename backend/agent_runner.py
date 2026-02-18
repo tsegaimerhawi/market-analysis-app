@@ -27,6 +27,7 @@ from db import (
     get_agent_include_volatile,
     get_agent_stop_loss_pct,
     get_agent_take_profit_pct,
+    get_agent_full_control,
     set_last_agent_history_executed,
     get_orders,
 )
@@ -122,6 +123,7 @@ def run_agent_cycle():
         logger.debug("Agent cycle: no symbols to run")
         return
 
+    full_control = get_agent_full_control()
     cycle_updates = []  # collect buy/sell/stop-loss/take-profit for Telegram
 
     llm = LLMManager()
@@ -134,8 +136,8 @@ def run_agent_cycle():
 
     stop_loss_pct = get_agent_stop_loss_pct()
     take_profit_pct = get_agent_take_profit_pct()
-    # When volatile is on, enforce a default stop-loss if user didn't set one (limit losses)
-    if get_agent_include_volatile() and stop_loss_pct is None:
+    # When volatile is on and not full_control, enforce a default stop-loss if user didn't set one (limit losses)
+    if not full_control and get_agent_include_volatile() and stop_loss_pct is None:
         stop_loss_pct = DEFAULT_STOP_LOSS_PCT_WHEN_VOLATILE
         add_agent_reasoning("VOLATILE", "guardrail", f"Volatile on: using default stop-loss {stop_loss_pct}% (set your own in Control to override)", {"default_stop_loss_pct": stop_loss_pct})
 
@@ -149,8 +151,8 @@ def run_agent_cycle():
             pos_qty = float(position["quantity"]) if position else 0
             avg_cost = float(position["avg_cost"]) if position else None
 
-            # --- Stop-loss / Take-profit (limit losses, lock profit on volatile positions) ---
-            if position and current_price and avg_cost and avg_cost > 0 and pos_qty > 0:
+            # --- Stop-loss / Take-profit (skipped when full_control; only agent decides sells) ---
+            if not full_control and position and current_price and avg_cost and avg_cost > 0 and pos_qty > 0:
                 pnl_pct = (current_price - avg_cost) / avg_cost * 100
                 if stop_loss_pct is not None and pnl_pct <= -stop_loss_pct:
                     ok, _, _ = execute_sell(symbol, pos_qty, current_price)
@@ -186,6 +188,7 @@ def run_agent_cycle():
                 current_price=current_price,
                 volatility_annual=volatility,
                 bid_ask_spread_pct=None,
+                full_control=full_control,
             )
 
             # Log decision to history (before execution)
@@ -206,9 +209,9 @@ def run_agent_cycle():
                 add_agent_reasoning(symbol, "execute", "Skipped: no quote/price", {})
                 continue
 
-            # Cap position size for volatile-only symbols (not in watchlist) to limit risk
+            # Cap position size for volatile-only symbols when not full_control (full_control uses orchestrator size as-is)
             position_size = decision.position_size
-            if symbol in volatile_only_symbols and position_size > MAX_POSITION_SIZE_VOLATILE_ONLY:
+            if not full_control and symbol in volatile_only_symbols and position_size > MAX_POSITION_SIZE_VOLATILE_ONLY:
                 position_size = MAX_POSITION_SIZE_VOLATILE_ONLY
                 add_agent_reasoning(symbol, "guardrail", f"Volatile-only symbol: position size capped to {MAX_POSITION_SIZE_VOLATILE_ONLY:.0%} of cash", {"capped": True})
 
