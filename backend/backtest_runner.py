@@ -34,10 +34,11 @@ def _volatility_from_closes(closes: List[float]) -> Optional[float]:
     return (var * 252) ** 0.5
 
 
-def run_backtest(symbol: str, days: int = 90) -> dict:
+def run_backtest(symbol: str, days: int = 90, full_control: bool = False) -> dict:
     """
     Run ensemble backtest on symbol. Returns dict with:
     total_return_pct, sharpe_ratio, max_drawdown_pct, win_rate_pct, num_trades, equity_curve (last 20).
+    When full_control=True, orchestrator uses full-control path (no guardrails, direct composite).
     """
     symbol = (symbol or "").strip().upper()
     if not symbol:
@@ -79,6 +80,7 @@ def run_backtest(symbol: str, days: int = 90) -> dict:
             current_price=current_price,
             volatility_annual=vol,
             bid_ask_spread_pct=None,
+            full_control=full_control,
         )
         if decision.action == "Buy" and cash > 0 and decision.position_size > 0:
             amount = cash * decision.position_size
@@ -131,6 +133,7 @@ def run_backtest(symbol: str, days: int = 90) -> dict:
     return {
         "symbol": symbol,
         "days": days,
+        "full_control": full_control,
         "initial_cash": INITIAL_CASH,
         "final_equity": round(final_equity, 2),
         "total_return_pct": round(total_return_pct, 2),

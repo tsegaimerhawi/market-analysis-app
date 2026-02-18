@@ -8,6 +8,7 @@ const API_BASE = "http://localhost:5001";
 export default function TradingAgent() {
   const [enabled, setEnabled] = useState(false);
   const [includeVolatile, setIncludeVolatile] = useState(false);
+  const [fullControl, setFullControl] = useState(false);
   const [volatileSymbols, setVolatileSymbols] = useState([]);
   const [stopLossPct, setStopLossPct] = useState("");
   const [takeProfitPct, setTakeProfitPct] = useState("");
@@ -22,9 +23,10 @@ export default function TradingAgent() {
     axios.get(`${API_BASE}/api/agent/status`).then((res) => {
       setEnabled(res.data.enabled);
       setIncludeVolatile(!!res.data.include_volatile);
+      setFullControl(!!res.data.full_control);
       setStopLossPct(res.data.stop_loss_pct != null ? String(res.data.stop_loss_pct) : "");
       setTakeProfitPct(res.data.take_profit_pct != null ? String(res.data.take_profit_pct) : "");
-    }).catch(() => { setEnabled(false); setIncludeVolatile(false); setStopLossPct(""); setTakeProfitPct(""); });
+    }).catch(() => { setEnabled(false); setIncludeVolatile(false); setFullControl(false); setStopLossPct(""); setTakeProfitPct(""); });
   };
 
   const loadVolatileSymbols = () => {
@@ -64,6 +66,7 @@ export default function TradingAgent() {
       .then((res) => {
         setEnabled(res.data.enabled);
         setIncludeVolatile(!!res.data.include_volatile);
+        setFullControl(!!res.data.full_control);
       })
       .catch((err) => setError(err.response?.data?.error || err.message || "Failed to update"))
       .finally(() => setLoading(false));
@@ -76,6 +79,18 @@ export default function TradingAgent() {
       .post(`${API_BASE}/api/agent/status`, { include_volatile: !includeVolatile })
       .then((res) => {
         setIncludeVolatile(!!res.data.include_volatile);
+      })
+      .catch((err) => setError(err.response?.data?.error || err.message || "Failed to update"))
+      .finally(() => setLoading(false));
+  };
+
+  const handleFullControlToggle = () => {
+    setLoading(true);
+    setError(null);
+    axios
+      .post(`${API_BASE}/api/agent/status`, { full_control: !fullControl })
+      .then((res) => {
+        setFullControl(!!res.data.full_control);
       })
       .catch((err) => setError(err.response?.data?.error || err.message || "Failed to update"))
       .finally(() => setLoading(false));
@@ -162,6 +177,19 @@ export default function TradingAgent() {
                 <span className="ms-1">{includeVolatile ? "On" : "Off"}</span>
               </button>
             </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="fw-bold">Full control</span>
+              <button
+                type="button"
+                className={`btn btn-sm ${fullControl ? "btn-info" : "btn-outline-secondary"}`}
+                onClick={handleFullControlToggle}
+                disabled={loading}
+                title="Agent 100% control: no guardrails, no stop-loss/take-profit, no volatile cap"
+              >
+                {fullControl ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
+                <span className="ms-1">{fullControl ? "On" : "Off"}</span>
+              </button>
+            </div>
             <button type="button" className="btn btn-outline-primary btn-sm" onClick={handleRunNow} disabled={runNowLoading}>
               <FaPlay className="me-1" /> {runNowLoading ? "Running…" : "Run cycle now"}
             </button>
@@ -203,9 +231,14 @@ export default function TradingAgent() {
             When on, the agent runs every 30 minutes 24/7 over your <strong>watchlist</strong> + <strong>Normal symbols</strong> (e.g. AAPL, NVDA, AMZN). Volatile list auto-updates every 30 min. Enable <strong>Volatile stocks</strong> to also trade the top 25 from the volatile list (8h algorithm).
           </p>
           <p className="small text-muted mb-0 mt-1">
-            <FaShieldAlt className="me-1" /> <strong>Stop-loss</strong>: sell full position if P&amp;L ≤ -X%. <strong>Take-profit</strong>: sell full position if P&amp;L ≥ Y%. Leave blank to disable. Applies to all agent positions.
+            <FaShieldAlt className="me-1" /> <strong>Stop-loss</strong>: sell full position if P&amp;L ≤ -X%. <strong>Take-profit</strong>: sell full position if P&amp;L ≥ Y%. Leave blank to disable. Applies to all agent positions (ignored when Full control is on).
           </p>
-          {includeVolatile && (
+          {fullControl && (
+            <div className="small mt-2 p-2 rounded bg-info bg-opacity-10 border border-info border-opacity-25">
+              <strong>Full control on:</strong> No guardrails, no confidence floor, no stop-loss/take-profit, no volatile-only cap. The agent&apos;s ensemble output alone drives all trades. Use for paper-trading experiments.
+            </div>
+          )}
+          {includeVolatile && !fullControl && (
             <div className="small mt-2 p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">
               <strong>Volatile mode safeguards:</strong> If you don&apos;t set a stop-loss, a <strong>5% default stop-loss</strong> is used so losses are limited. Position size for volatile-only symbols is capped at <strong>15% of cash</strong> per buy to reduce risk.
             </div>
