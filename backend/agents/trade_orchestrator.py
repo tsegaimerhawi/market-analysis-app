@@ -103,27 +103,30 @@ class TradeOrchestrator:
         current_price: Optional[float] = None,
         volatility_annual: Optional[float] = None,
         bid_ask_spread_pct: Optional[float] = None,
+        full_control: bool = False,
     ) -> TradeDecision:
         """
         Run the full ensemble: LSTM, XGBoost, Sentiment, Macro -> weighted score -> Buy/Sell/Hold + position_size.
-        If guardrail triggers, return Hold with guardrail_triggered=True.
+        If guardrail triggers (and not full_control), return Hold with guardrail_triggered=True.
+        When full_control=True, no guardrails, no confidence floor, no dampening, no agreement rule; composite alone drives action.
         """
-        self._log(symbol, "start", f"Running ensemble for {symbol}", {})
+        self._log(symbol, "start", f"Running ensemble for {symbol}" + (" (full control)" if full_control else ""), {})
 
-        # 1) Hard guardrails first
-        triggered, reason = self.check_guardrails(
-            symbol, current_price or 0, volatility_annual, bid_ask_spread_pct
-        )
-        if triggered:
-            self._log(symbol, "guardrail", reason, {"triggered": True})
-            return TradeDecision(
-                action="Hold",
-                position_size=0.0,
-                confidence=0.0,
-                reason=reason,
-                guardrail_triggered=True,
-                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+        # 1) Hard guardrails first (skipped when full_control)
+        if not full_control:
+            triggered, reason = self.check_guardrails(
+                symbol, current_price or 0, volatility_annual, bid_ask_spread_pct
             )
+            if triggered:
+                self._log(symbol, "guardrail", reason, {"triggered": True})
+                return TradeDecision(
+                    action="Hold",
+                    position_size=0.0,
+                    confidence=0.0,
+                    reason=reason,
+                    guardrail_triggered=True,
+                    weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                )
 
         # 2) Local ML/DL and technical signals (numerical)
         lstm_signal = self.lstm.predict(symbol, history_closes)
@@ -190,6 +193,25 @@ class TradeOrchestrator:
                     trend_align = max(0.3, 1.0 - trend_pct)  # reduce sell size in uptrend
 
         self._log(symbol, "ensemble", f"Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "sig_bull": sig_bull, "sig_bear": sig_bear})
+
+        # 4d) Full control path: no guardrails, no confidence floor, no dampening, no agreement; composite -> action, simple position size
+        FULL_CONTROL_BUY_THRESHOLD = 0.08
+        FULL_CONTROL_SELL_THRESHOLD = -0.08
+        FULL_CONTROL_MAX_POSITION_CAP = 0.5
+        if full_control:
+            action = "Buy" if composite >= FULL_CONTROL_BUY_THRESHOLD else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
+            # Position size: composite and confidence only, single cap, no volatility scaling
+            raw_size = 0.5 * abs(composite) * (0.3 + 0.7 * avg_confidence) if action != "Hold" else 0.0
+            position_size = max(0.0, min(FULL_CONTROL_MAX_POSITION_CAP, raw_size))
+            reason = f"[Full control] LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
+            return TradeDecision(
+                action=action,
+                position_size=position_size,
+                confidence=avg_confidence,
+                reason=reason,
+                guardrail_triggered=False,
+                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+            )
 
         # 5) Confidence floor: don't act on noise
         if avg_confidence < 0.18:
