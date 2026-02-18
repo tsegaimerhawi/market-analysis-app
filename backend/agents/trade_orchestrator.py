@@ -2,6 +2,7 @@
 The Ensemble "Decider": gathers ML/DL and LLM signals, applies weighted decision matrix,
 outputs Buy/Sell/Hold with position_size. Includes hard guardrails (volatility, spread).
 """
+import os
 from typing import List, Optional, Callable
 from agents.models import (
     TradeDecision,
@@ -21,6 +22,9 @@ WEIGHT_XGBOOST = 0.15
 WEIGHT_TECHNICAL = 0.10
 WEIGHT_SENTIMENT = 0.30
 WEIGHT_MACRO = 0.10
+
+def _risk_mode() -> str:
+    return (os.environ.get("AGENT_RISK_MODE") or "balanced").strip().lower()
 
 
 class TradeOrchestrator:
@@ -154,18 +158,99 @@ class TradeOrchestrator:
         ) / 5
         avg_confidence = max(0.0, min(1.0, avg_confidence))
 
-        self._log(symbol, "ensemble", f"Composite score={composite:.3f}, avg_confidence={avg_confidence:.3f}", {"composite": composite, "weights": {"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO}})
+        # 4b) Signal agreement: count how many of 5 signals agree in direction (smarter conviction)
+        sig_bull = sum(1 for s in [
+            lstm_signal.confidence_score,
+            xgb_signal.confidence_score,
+            technical_signal.confidence_score,
+            sentiment.polarity * sentiment.confidence,
+            macro.stance * macro.confidence,
+        ] if s > 0.08)
+        sig_bear = sum(1 for s in [
+            lstm_signal.confidence_score,
+            xgb_signal.confidence_score,
+            technical_signal.confidence_score,
+            sentiment.polarity * sentiment.confidence,
+            macro.stance * macro.confidence,
+        ] if s < -0.08)
+        agreement = "bull" if sig_bull > sig_bear else ("bear" if sig_bear > sig_bull else "neutral")
+        agree_count = max(sig_bull, sig_bear) if agreement != "neutral" else 0
 
-        # 5) Map score to action
-        if composite >= 0.15:
+        # 4c) Short-term trend from price vs 20-day MA (avoid buying into downtrend / selling into uptrend without confirmation)
+        trend_align = 1.0
+        if history_closes and len(history_closes) >= 21:
+            price = float(history_closes[-1])
+            ma20 = sum(history_closes[-21:-1]) / 20.0
+            if ma20 and ma20 > 0:
+                trend_pct = (price - ma20) / ma20  # + = above MA (uptrend), - = below MA (downtrend)
+                # Scale: strong downtrend (e.g. -5%) penalizes buy; strong uptrend penalizes sell
+                if composite >= 0.1 and trend_pct < -0.03:
+                    trend_align = max(0.3, 1.0 + trend_pct)  # reduce buy size in downtrend
+                elif composite <= -0.1 and trend_pct > 0.03:
+                    trend_align = max(0.3, 1.0 - trend_pct)  # reduce sell size in uptrend
+
+        self._log(symbol, "ensemble", f"Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "sig_bull": sig_bull, "sig_bear": sig_bear})
+
+        # 5) Confidence floor: don't act on noise
+        if avg_confidence < 0.18:
+            self._log(symbol, "filter", "Hold: avg_confidence below floor 0.18", {"avg_confidence": avg_confidence})
+            return TradeDecision(
+                action="Hold",
+                position_size=0.0,
+                confidence=avg_confidence,
+                reason=f"Hold: low conviction (conf={avg_confidence:.2f}). LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f}",
+                guardrail_triggered=False,
+                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+            )
+
+        # 6) Macro/sentiment veto: don't buy into strong headwinds; don't sell into strong tailwinds without strong signal
+        sent_effective = sentiment.polarity * sentiment.confidence
+        macro_effective = macro.stance * macro.confidence
+        if composite >= 0.1:
+            if macro_effective < -0.35 or sent_effective < -0.35:
+                composite = composite * 0.4  # strong headwind: much weaker buy
+                self._log(symbol, "filter", "Buy dampened: macro or sentiment bearish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+        elif composite <= -0.1:
+            if macro_effective > 0.35 and sent_effective > 0.35:
+                composite = composite * 0.5  # strong tailwind: require stronger sell signal
+                self._log(symbol, "filter", "Sell dampened: macro and sentiment bullish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+
+        # 7) Map score to action with agreement requirement (at least 2 signals must agree)
+        mode = _risk_mode()
+        threshold = 0.10 if mode == "aggressive" else 0.12
+        sell_threshold = -0.12 if mode == "aggressive" else -0.14  # slightly higher bar to sell (avoid panic sells)
+        if composite >= threshold and agree_count >= 2 and agreement == "bull":
             action = "Buy"
-        elif composite <= -0.15:
+        elif composite <= sell_threshold and agree_count >= 2 and agreement == "bear":
             action = "Sell"
         else:
             action = "Hold"
 
-        position_size = self.compute_position_size(abs(composite), avg_confidence, volatility_annual=volatility_annual) if action != "Hold" else 0.0
-        reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
+        # 8) Position sizing: scale down when only 2 agree or when trend contradicts
+        kelly_fraction = 0.35 if mode == "aggressive" else 0.25
+        max_cap = 0.30 if mode == "aggressive" else 0.20
+        size_mult = 1.0
+        if action != "Hold":
+            if agree_count == 2:
+                size_mult = 0.6  # weaker conviction
+            elif agree_count >= 4:
+                size_mult = 1.0  # strong agreement
+            else:
+                size_mult = 0.8
+            size_mult = size_mult * trend_align  # trend filter
+
+        position_size = (
+            self.compute_position_size(
+                abs(composite),
+                avg_confidence,
+                kelly_fraction=kelly_fraction,
+                max_position_cap=max_cap,
+                volatility_annual=volatility_annual,
+            ) * size_mult if action != "Hold" else 0.0
+        )
+        position_size = max(0.0, min(max_cap, position_size))
+
+        reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f} | agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}"
 
         return TradeDecision(
             action=action,

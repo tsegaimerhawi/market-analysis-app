@@ -83,11 +83,15 @@ class TechnicalAnalyst:
             rsi = _rsi(closes)
             macd = _macd_signal(closes)
             pct_b = _bollinger_pct_b(closes)
-            # Normalize to -1..1 and combine
-            # RSI: 50 neutral, <30 oversold (bullish), >70 overbought (bearish)
+            # Normalize to -1..1 and combine; weight extremes more (smarter signals)
+            # RSI: 50 neutral, <30 oversold (bullish), >70 overbought (bearish); stronger when extreme
             rsi_score = 0.0
             if rsi is not None:
                 rsi_score = (50.0 - rsi) / 50.0  # -1 at RSI 100, +1 at RSI 0
+                if rsi <= 30:
+                    rsi_score = 0.5 + 0.5 * (30 - rsi) / 30.0  # oversold: boost bullish to max 1.0
+                elif rsi >= 70:
+                    rsi_score = -0.5 - 0.5 * (rsi - 70) / 30.0  # overbought: boost bearish
                 rsi_score = max(-1.0, min(1.0, rsi_score))
             macd_score = 0.0
             if macd is not None and closes[-1]:
@@ -98,8 +102,16 @@ class TechnicalAnalyst:
             if pct_b is not None:
                 bb_score = (0.5 - pct_b) * 2
                 bb_score = max(-1.0, min(1.0, bb_score))
-            # Equal weight blend
-            composite = (rsi_score + macd_score + bb_score) / 3.0
+            # Short-term trend: price vs 20-day MA (confirmation)
+            trend_score = 0.0
+            if len(closes) >= 21:
+                price = closes[-1]
+                ma20 = sum(closes[-21:-1]) / 20.0
+                if ma20 and ma20 > 0:
+                    trend_pct = (price - ma20) / ma20
+                    trend_score = max(-1.0, min(1.0, trend_pct * 10.0))  # e.g. +5% -> +0.5
+            # Blend: RSI and MACD 35% each (key for entries), BB 15%, trend 15%
+            composite = 0.35 * rsi_score + 0.35 * macd_score + 0.15 * bb_score + 0.15 * trend_score
             composite = max(-1.0, min(1.0, composite))
             return MLSignal(
                 confidence_score=composite,

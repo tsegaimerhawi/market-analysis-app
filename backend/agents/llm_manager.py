@@ -14,6 +14,9 @@ from utils.logger import logger
 OPENROUTER_API_KEY = os.environ.get("OPEN_ROUTER_TRADER_API_KEY") or os.environ.get("OPEN_ROUTER_API_KEY")
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
+def _risk_mode() -> str:
+    return (os.environ.get("AGENT_RISK_MODE") or "balanced").strip().lower()
+
 
 def _get_client():
     """Lazy import of OpenAI client configured for OpenRouter.
@@ -71,7 +74,16 @@ class LLMManager:
             return SentimentOutput(polarity=0.0, summary="No headlines or API key.", confidence=0.0)
 
         text = "\n".join(headlines[:20])[:3000]  # cap input size
-        prompt = f"""You are a financial sentiment analyst. Given these headlines/feeds for {symbol or "the market"}, output a single JSON object with:
+        mode = _risk_mode()
+        style = ""
+        if mode == "aggressive":
+            style = (
+                "You are operating in an AGGRESSIVE trading mode: be decisive when there is any meaningful tilt. "
+                "Avoid returning a near-zero polarity unless the information is truly neutral/mixed. "
+                "Use the full range [-1, 1] when headlines are clearly directional, and set confidence to reflect strength."
+            )
+        prompt = f"""You are a financial sentiment analyst. {style}
+Given these headlines/feeds for {symbol or "the market"}, output a single JSON object with:
 - "polarity": number from -1.0 (bearish) to 1.0 (bullish)
 - "summary": one short sentence
 - "confidence": number from 0 to 1
@@ -85,7 +97,7 @@ Reply with only the JSON object, no markdown."""
             resp = client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
+                temperature=0.45 if mode == "aggressive" else 0.3,
                 max_tokens=256,
             )
             content = (resp.choices[0].message.content or "").strip()
@@ -113,7 +125,16 @@ Reply with only the JSON object, no markdown."""
             return MacroOutput(stance=0.0, summary="No API key.", confidence=0.0)
 
         desc = indicators.get("description") or json.dumps(indicators)[:2500]
-        prompt = f"""You are a macro analyst. Given these economic indicators, output a single JSON object with:
+        mode = _risk_mode()
+        style = ""
+        if mode == "aggressive":
+            style = (
+                "You are operating in an AGGRESSIVE trading mode: prefer a directional stance when there is any meaningful tilt. "
+                "Avoid a near-zero stance unless the indicators are genuinely neutral/conflicting. "
+                "Use the full range [-1, 1] when the macro picture is clearly risk-on/risk-off, and set confidence accordingly."
+            )
+        prompt = f"""You are a macro analyst. {style}
+Given these economic indicators, output a single JSON object with:
 - "stance": number from -1.0 (bearish for risk assets) to 1.0 (bullish)
 - "summary": one short sentence
 - "confidence": number from 0 to 1
@@ -127,7 +148,7 @@ Reply with only the JSON object, no markdown."""
             resp = client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
+                temperature=0.45 if mode == "aggressive" else 0.3,
                 max_tokens=256,
             )
             content = (resp.choices[0].message.content or "").strip()

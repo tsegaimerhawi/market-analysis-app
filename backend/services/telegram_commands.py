@@ -98,8 +98,31 @@ def _parse_command(text):
         if symbol and len(symbol) <= 10 and symbol.isalpha():
             return ("sell", symbol, "all")
         return None
-    # rest is "SYMBOL" or "SYMBOL 10" or "SYMBOL all"
-    symbol = (tokens[0] or "").strip().upper()
+    # rest is "SYMBOL" or "SYMBOL 10" or "SYMBOL 0.01" or "SYMBOL[0.01]" or "SYMBOL all"
+    first = (tokens[0] or "").strip()
+    symbol = first.upper()
+    # Support "GOOGL[0.01]" or "GOOGL[10]" format
+    if "[" in first and "]" in first:
+        try:
+            lb = first.index("[")
+            rb = first.index("]")
+            symbol = first[:lb].strip().upper()
+            qty_str = first[lb + 1:rb].strip()
+            if verb == "buy" and symbol and qty_str:
+                qty = float(qty_str)
+                if qty <= 0:
+                    return None
+                return ("buy", symbol, qty)
+            if verb == "sell" and symbol and qty_str:
+                if qty_str.lower() == "all":
+                    return ("sell", symbol, "all")
+                qty = float(qty_str)
+                if qty <= 0:
+                    return None
+                return ("sell", symbol, qty)
+        except (ValueError, TypeError, IndexError):
+            pass
+        return None
     if not symbol or len(symbol) > 10:
         return None
     if verb == "buy":
@@ -107,9 +130,9 @@ def _parse_command(text):
         if len(tokens) >= 2:
             try:
                 qty = float(tokens[1])
-                if qty <= 0 or qty != int(qty):
+                if qty <= 0:
                     return None
-                qty = int(qty)
+                # Allow fractional shares (0.01, 0.5, etc.)
             except (ValueError, TypeError):
                 return None
         return ("buy", symbol, qty)
@@ -219,7 +242,7 @@ def process_updates():
         if text.lower() in ("/help", "help", "/start"):
             send_message(
                 "📋 Trading commands (paper trading):\n"
-                "• buy SYMBOL [qty] — e.g. buy AAPL 10 (default 1)\n"
+                "• buy SYMBOL [qty] — e.g. buy AAPL 10, buy GOOGL 0.01 or buy GOOGL[0.01]\n"
                 "• sell SYMBOL [qty|all] — e.g. sell GME all or sell all GME\n"
                 "• buy X with all cash — e.g. buy google stock with all cash balance\n"
                 "• Use symbol or company name (e.g. buy google 10)\n"
@@ -247,8 +270,8 @@ def process_updates():
         if not cmd:
             # Reply so user knows we saw the message and show correct format
             send_message(
-                "❓ Use: buy SYMBOL [qty] or sell SYMBOL [qty|all]\n"
-                "Or: buy X with all cash — e.g. buy google stock with all cash balance\n"
+                "❓ Use: buy SYMBOL [qty] or sell SYMBOL [qty|all] (qty can be fractional, e.g. 0.01)\n"
+                "Or: buy GOOGL[0.01] or buy X with all cash. Type /help for full list.\n"
                 "Type /help for full list.",
                 chat_id=chat_id,
             )
