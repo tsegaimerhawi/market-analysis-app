@@ -40,6 +40,8 @@ from db import (
     set_agent_stop_loss_pct,
     get_agent_take_profit_pct,
     set_agent_take_profit_pct,
+    get_agent_full_control,
+    set_agent_full_control,
     get_agent_reasoning,
     get_agent_history,
 )
@@ -381,18 +383,19 @@ def api_limit_order_cancel(order_id):
 
 @app.route("/api/agent/status", methods=["GET"])
 def api_agent_status():
-    """Return agent enabled, include_volatile, stop_loss_pct, take_profit_pct."""
+    """Return agent enabled, include_volatile, stop_loss_pct, take_profit_pct, full_control."""
     return jsonify({
         "enabled": get_agent_enabled(),
         "include_volatile": get_agent_include_volatile(),
         "stop_loss_pct": get_agent_stop_loss_pct(),
         "take_profit_pct": get_agent_take_profit_pct(),
+        "full_control": get_agent_full_control(),
     })
 
 
 @app.route("/api/agent/status", methods=["POST"])
 def api_agent_set_status():
-    """Turn agent on/off, include_volatile, stop_loss_pct, take_profit_pct. Body: { "enabled", "include_volatile", "stop_loss_pct", "take_profit_pct" }."""
+    """Turn agent on/off, include_volatile, stop_loss_pct, take_profit_pct, full_control. Body: { "enabled", "include_volatile", "stop_loss_pct", "take_profit_pct", "full_control" }."""
     data = request.get_json(silent=True) or {}
     if "enabled" in data:
         set_agent_enabled(bool(data["enabled"]))
@@ -404,11 +407,14 @@ def api_agent_set_status():
     if "take_profit_pct" in data:
         v = data["take_profit_pct"]
         set_agent_take_profit_pct(float(v) if v is not None and str(v).strip() else None)
+    if "full_control" in data:
+        set_agent_full_control(bool(data["full_control"]))
     return jsonify({
         "enabled": get_agent_enabled(),
         "include_volatile": get_agent_include_volatile(),
         "stop_loss_pct": get_agent_stop_loss_pct(),
         "take_profit_pct": get_agent_take_profit_pct(),
+        "full_control": get_agent_full_control(),
     })
 
 

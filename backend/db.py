@@ -429,6 +429,23 @@ def set_agent_take_profit_pct(pct):
         conn.commit()
 
 
+def get_agent_full_control():
+    """Return True if agent has full control (no guardrails, no stop-loss/take-profit)."""
+    import os
+    if os.environ.get("AGENT_FULL_CONTROL") == "1":
+        return True
+    with _conn() as conn:
+        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'full_control'").fetchone()
+        return (row and row["value"] == "1")
+
+
+def set_agent_full_control(full_control):
+    """Set whether the agent has full control (no guardrails, no stop-loss/take-profit)."""
+    with _conn() as conn:
+        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('full_control', ?)", ("1" if full_control else "0",))
+        conn.commit()
+
+
 def add_agent_reasoning(symbol, step, message, data=None):
     """Append a reasoning step for the UI."""
     with _conn() as conn:
