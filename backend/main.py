@@ -653,16 +653,20 @@ def _volatile_refresh_loop():
 
 
 def _agent_loop():
-    """Background loop: every 30 minutes run agent cycle if enabled (24/7 while server runs)."""
+    """Background loop: run first cycle after 1 min, then every 30 minutes if enabled (24/7 while server runs)."""
     import time
+    # Run first cycle soon after start (avoid waiting 30 min); then 30 min between runs
+    time.sleep(60)  # 1 min before first run so server is up
     while True:
-        time.sleep(30 * 60)  # 30 min
         try:
             if get_agent_enabled():
                 from agent_runner import run_agent_cycle
                 run_agent_cycle()
+            else:
+                logger.debug("Agent loop: agent disabled, skipping cycle")
         except Exception as e:
             logger.exception("Agent loop error: %s", e)
+        time.sleep(30 * 60)  # 30 min until next cycle
 
 
 def _telegram_poll_loop():
@@ -688,8 +692,11 @@ if __name__ == "__main__":
         threading.Thread(target=_volatile_refresh_loop, daemon=True).start()
         threading.Thread(target=_agent_loop, daemon=True).start()
         threading.Thread(target=_telegram_poll_loop, daemon=True).start()
+        logger.info("Background threads started: volatile refresh, agent loop (first run in 1 min), telegram poll")
     port = int(os.environ.get("PORT", 5001))
+    # Disable reloader (USE_RELOADER=0) when running the agent 24/7 so file saves don't restart the process and kill the agent thread
+    use_reloader = os.environ.get("USE_RELOADER", "true").lower() in ("1", "true", "yes")
     try:
-        app.run(debug=True, port=port, use_reloader=True, reloader_type="stat")
+        app.run(debug=True, port=port, use_reloader=use_reloader, reloader_type="stat")
     except TypeError:
         app.run(debug=True, port=port, use_reloader=False)

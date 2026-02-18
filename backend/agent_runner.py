@@ -88,6 +88,7 @@ def run_agent_cycle():
     Run one full cycle: for each symbol (watchlist + normal list + optional volatile list), run orchestrator, log reasoning, execute if Buy/Sell.
     """
     if not get_agent_enabled():
+        logger.debug("Agent cycle skipped: agent is disabled")
         return
 
     watchlist = get_watchlist()
@@ -120,10 +121,19 @@ def run_agent_cycle():
             symbols_to_run.append(sym)
 
     if not symbols_to_run:
-        logger.debug("Agent cycle: no symbols to run")
+        logger.warning(
+            "Agent cycle skipped: no symbols to run (watchlist and normal_symbols.json empty or missing). "
+            "Add symbols in the app Watchlist or Normal Symbols page."
+        )
         return
 
     full_control = get_agent_full_control()
+    logger.info(
+        "Agent cycle starting | symbols=%s | full_control=%s | volatile_included=%s",
+        len(symbols_to_run),
+        full_control,
+        get_agent_include_volatile(),
+    )
     cycle_updates = []  # collect buy/sell/stop-loss/take-profit for Telegram
 
     llm = LLMManager()
@@ -283,3 +293,4 @@ def run_agent_cycle():
     ok, err = send_telegram_message(msg)
     if not ok and err:
         logger.warning("Telegram notify failed: %s", err)
+    logger.info("Agent cycle finished | trades_this_cycle=%s", len(cycle_updates))
