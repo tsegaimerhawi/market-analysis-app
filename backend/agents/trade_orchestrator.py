@@ -161,21 +161,22 @@ class TradeOrchestrator:
         ) / 5
         avg_confidence = max(0.0, min(1.0, avg_confidence))
 
-        # 4b) Signal agreement: count how many of 5 signals agree in direction (smarter conviction)
+        # 4b) Signal agreement: count how many of 5 signals agree in direction (use 0.05 so weak positives count when sentiment/macro are 0)
+        signal_agree_thresh = 0.05
         sig_bull = sum(1 for s in [
             lstm_signal.confidence_score,
             xgb_signal.confidence_score,
             technical_signal.confidence_score,
             sentiment.polarity * sentiment.confidence,
             macro.stance * macro.confidence,
-        ] if s > 0.08)
+        ] if s > signal_agree_thresh)
         sig_bear = sum(1 for s in [
             lstm_signal.confidence_score,
             xgb_signal.confidence_score,
             technical_signal.confidence_score,
             sentiment.polarity * sentiment.confidence,
             macro.stance * macro.confidence,
-        ] if s < -0.08)
+        ] if s < -signal_agree_thresh)
         agreement = "bull" if sig_bull > sig_bear else ("bear" if sig_bear > sig_bull else "neutral")
         agree_count = max(sig_bull, sig_bear) if agreement != "neutral" else 0
 
@@ -195,8 +196,9 @@ class TradeOrchestrator:
         self._log(symbol, "ensemble", f"Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "sig_bull": sig_bull, "sig_bear": sig_bear})
 
         # 4d) Full control path: no guardrails, no confidence floor, no dampening, no agreement; composite -> action, simple position size
-        FULL_CONTROL_BUY_THRESHOLD = 0.08
-        FULL_CONTROL_SELL_THRESHOLD = -0.08
+        # Use lower thresholds so agent can buy when LSTM/XGB/Tech are mildly bullish (sentiment/macro often 0 without API keys)
+        FULL_CONTROL_BUY_THRESHOLD = 0.04
+        FULL_CONTROL_SELL_THRESHOLD = -0.04
         FULL_CONTROL_MAX_POSITION_CAP = 0.5
         if full_control:
             action = "Buy" if composite >= FULL_CONTROL_BUY_THRESHOLD else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
@@ -213,9 +215,10 @@ class TradeOrchestrator:
                 weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
             )
 
-        # 5) Confidence floor: don't act on noise
-        if avg_confidence < 0.18:
-            self._log(symbol, "filter", "Hold: avg_confidence below floor 0.18", {"avg_confidence": avg_confidence})
+        # 5) Confidence floor: don't act on noise (lowered so agent can trade when sentiment/macro are 0/stub)
+        CONFIDENCE_FLOOR = 0.12
+        if avg_confidence < CONFIDENCE_FLOOR:
+            self._log(symbol, "filter", f"Hold: avg_confidence below floor {CONFIDENCE_FLOOR}", {"avg_confidence": avg_confidence})
             return TradeDecision(
                 action="Hold",
                 position_size=0.0,
@@ -238,9 +241,10 @@ class TradeOrchestrator:
                 self._log(symbol, "filter", "Sell dampened: macro and sentiment bullish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
 
         # 7) Map score to action with agreement requirement (at least 2 signals must agree)
+        # Lower thresholds so agent can buy when only price-based signals are available (sentiment/macro often 0)
         mode = _risk_mode()
-        threshold = 0.10 if mode == "aggressive" else 0.12
-        sell_threshold = -0.12 if mode == "aggressive" else -0.14  # slightly higher bar to sell (avoid panic sells)
+        threshold = 0.08 if mode == "aggressive" else 0.08
+        sell_threshold = -0.08 if mode == "aggressive" else -0.10
         if composite >= threshold and agree_count >= 2 and agreement == "bull":
             action = "Buy"
         elif composite <= sell_threshold and agree_count >= 2 and agreement == "bear":
