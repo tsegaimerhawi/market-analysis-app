@@ -228,26 +228,27 @@ class TradeOrchestrator:
                 weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
             )
 
-        # 6) Macro/sentiment veto: don't buy into strong headwinds; don't sell into strong tailwinds without strong signal
+        # 6) Macro/sentiment veto: only dampen on *strong* headwinds (LLM often returns mildly bearish; don't block every buy)
         sent_effective = sentiment.polarity * sentiment.confidence
         macro_effective = macro.stance * macro.confidence
         if composite >= 0.1:
-            if macro_effective < -0.35 or sent_effective < -0.35:
-                composite = composite * 0.4  # strong headwind: much weaker buy
-                self._log(symbol, "filter", "Buy dampened: macro or sentiment bearish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+            if macro_effective < -0.55 or sent_effective < -0.55:
+                composite = composite * 0.5
+                self._log(symbol, "filter", "Buy dampened: macro or sentiment strongly bearish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
         elif composite <= -0.1:
-            if macro_effective > 0.35 and sent_effective > 0.35:
-                composite = composite * 0.5  # strong tailwind: require stronger sell signal
-                self._log(symbol, "filter", "Sell dampened: macro and sentiment bullish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+            if macro_effective > 0.55 and sent_effective > 0.55:
+                composite = composite * 0.5
+                self._log(symbol, "filter", "Sell dampened: macro and sentiment strongly bullish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
 
-        # 7) Map score to action with agreement requirement (at least 2 signals must agree)
-        # Lower thresholds so agent can buy when only price-based signals are available (sentiment/macro often 0)
+        # 7) Map score to action; require at least 1 agreeing signal (so LLM bearish + one bullish price signal can still buy)
         mode = _risk_mode()
         threshold = 0.08 if mode == "aggressive" else 0.08
         sell_threshold = -0.08 if mode == "aggressive" else -0.10
-        if composite >= threshold and agree_count >= 2 and agreement == "bull":
+        min_agree_buy = 1
+        min_agree_sell = 1
+        if composite >= threshold and agree_count >= min_agree_buy and agreement == "bull":
             action = "Buy"
-        elif composite <= sell_threshold and agree_count >= 2 and agreement == "bear":
+        elif composite <= sell_threshold and agree_count >= min_agree_sell and agreement == "bear":
             action = "Sell"
         else:
             action = "Hold"
@@ -275,9 +276,16 @@ class TradeOrchestrator:
             ) * size_mult if action != "Hold" else 0.0
         )
         position_size = max(0.0, min(max_cap, position_size))
+        # Ensure minimum position size when buying so we don't skip due to rounding
+        if action == "Buy" and position_size > 0 and position_size < 0.02:
+            position_size = 0.02
 
         reason = f"LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f} | agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}"
 
+        logger.info(
+            "Decision %s: %s (composite=%.2f, agree=%s, size=%.2f)",
+            symbol, action, composite, agree_count, position_size,
+        )
         return TradeDecision(
             action=action,
             position_size=position_size,

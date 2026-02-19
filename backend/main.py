@@ -7,7 +7,6 @@ import json
 try:
     from dotenv import load_dotenv
     load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
-    load_dotenv()
 except ImportError:
     pass
 from utils.imports import UPLOAD_FOLDER
@@ -216,7 +215,7 @@ def predict_future():
 
     data_config = {"startDate": start_date, "endDate": end_date}
     try:
-        result = run_future_prediction(data_config, symbol, steps=prediction_length, algorithms=algorithm_ids)
+        result = run_future_prediction(data_config, symbol, steps=prediction_length, algorithms=algorithm_ids, registry=ALGORITHMS)
         if "error" in result:
             return jsonify(result), 400
         return jsonify(result)
