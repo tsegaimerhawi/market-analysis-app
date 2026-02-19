@@ -45,18 +45,48 @@ def _train_and_predict_lstm(closes: List[float]) -> Optional[tuple]:
         from tensorflow.keras import layers
     except ImportError:
         return None
-    X, y = _build_return_sequences(closes, SEQ_LEN)
-    if X is None or len(X) < 5:
+    
+    # To fix lag bias, we use all but the last return for training, 
+    # and use the most recent return sequence (including the last return) for prediction.
+    X_all, y_all = _build_return_sequences(closes, SEQ_LEN)
+    if X_all is None or len(X_all) < 6:
         return None
+    
+    # Train on all samples except the very last one if we want to be strict,
+    # but actually _build_return_sequences builds windows up to the last known 'y'.
+    # If we have returns up to 'today', the last y is 'today's return'.
+    # To predict 'tomorrow', we need a feature vector that includes 'today'.
+    
+    # Current behavior of _build_return_sequences:
+    # returns = [r1, r2, ... rN] where rN is (priceN - priceN-1)/priceN-1
+    # X = [ [r1...r20], [r2...r21], ... [r(N-20)...r(N-1)] ]
+    # y = [ r21, r22, ... rN ]
+    # The last X is [r(N-20)...r(N-1)], predicting rN.
+    
+    # To predict r(N+1), we need X_next = [r(N-19)...rN]
+    import math
+    returns = []
+    for i in range(1, len(closes)):
+        if closes[i - 1] and closes[i - 1] > 0:
+            returns.append(math.log(closes[i] / closes[i - 1]))
+        else:
+            returns.append(0.0)
+    
+    X_train = X_all # We can train on everything we have
+    y_train = y_all
+    
+    # New sequence for true future prediction
+    next_seq = np.array(returns[-SEQ_LEN:], dtype=np.float32).reshape(1, SEQ_LEN, 1)
+    
     model = keras.Sequential([
         layers.Input(shape=(SEQ_LEN, 1)),
         layers.LSTM(LSTM_UNITS, activation="tanh"),
         layers.Dense(1),
     ])
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3), loss="mse")
-    model.fit(X, y, epochs=EPOCHS, batch_size=min(BATCH_SIZE, len(X)), verbose=0)
-    last_seq = X[-1:].astype(np.float32)
-    pred_return = float(model.predict(last_seq, verbose=0)[0, 0])
+    model.fit(X_train, y_train, epochs=EPOCHS, batch_size=min(BATCH_SIZE, len(X_train)), verbose=0)
+    
+    pred_return = float(model.predict(next_seq, verbose=0)[0, 0])
     current = closes[-1] if closes else 0
     return (pred_return, current)
 

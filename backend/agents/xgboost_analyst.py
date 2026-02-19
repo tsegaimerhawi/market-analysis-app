@@ -74,19 +74,36 @@ def _train_and_predict_xgb(closes: List[float]) -> Optional[float]:
     data = _build_features_and_targets(closes)
     if data is None:
         return None
-    X_list, y_list = data
-    if len(X_list) < 10:
+    X_train_list, y_train_list = data
+    if len(X_train_list) < 10:
         return None
-    X = np.array(X_list[:-1], dtype=np.float32)
-    y = np.array(y_list[:-1], dtype=np.int32)
-    X_last = np.array([X_list[-1]], dtype=np.float32)
+    
+    # To predict the TRUE future return (tomorrow), we need a feature vector built from the absolute latest data.
+    # _build_features_and_targets ends at the last return. We need one more step.
+    rets = _returns(closes)
+    i = len(rets) # Pointing one past the end of returns to use everything for features
+    
+    r1 = rets[i - 1] if i >= 1 else 0
+    r5 = (closes[i] / closes[i - 5] - 1.0) if i >= 5 else 0
+    r20 = (closes[i] / closes[i - 20] - 1.0) if i >= 20 else 0
+    window = rets[i - 20 : i] if i >= 20 else rets[:i]
+    vol = (sum((x - sum(window) / len(window)) ** 2 for x in window) / len(window)) ** 0.5 if window else 0
+    rsi = _rsi_at(closes, i)
+    ma20 = sum(closes[i - 20 : i]) / 20 if i >= 20 else closes[i]
+    dist_ma = (closes[i] - ma20) / ma20 if ma20 else 0
+    X_future = np.array([[r1, r5, r20, vol, rsi / 100.0 - 0.5, dist_ma]], dtype=np.float32)
+
+    X = np.array(X_train_list, dtype=np.float32)
+    y = np.array(y_train_list, dtype=np.int32)
+    
     try:
         model = xgb.XGBClassifier(n_estimators=50, max_depth=4, eval_metric="logloss", verbosity=0)
     except TypeError:
         model = xgb.XGBClassifier(n_estimators=50, max_depth=4, verbosity=0)
+    
     model.fit(X, y)
-    pred = model.predict(X_last)[0]
-    proba = model.predict_proba(X_last)
+    pred = model.predict(X_future)[0]
+    proba = model.predict_proba(X_future)
     if proba.shape[1] == 2:
         confidence = (float(proba[0, 1]) - 0.5) * 2
     else:
