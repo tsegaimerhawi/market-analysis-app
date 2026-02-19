@@ -151,6 +151,11 @@ def run_agent_cycle():
         stop_loss_pct = DEFAULT_STOP_LOSS_PCT_WHEN_VOLATILE
         add_agent_reasoning("VOLATILE", "guardrail", f"Volatile on: using default stop-loss {stop_loss_pct}% (set your own in Control to override)", {"default_stop_loss_pct": stop_loss_pct})
 
+    # Fetch cash once at the start of the cycle to avoid 'cascade' buying where earlier symbols
+    # get larger absolute positions than later symbols due to diminishing cash balance.
+    cycle_start_cash = get_cash_balance()
+    deployed_this_cycle = 0.0
+
     for symbol in symbols_to_run:
         if not symbol:
             continue
@@ -162,6 +167,7 @@ def run_agent_cycle():
             avg_cost = float(position["avg_cost"]) if position else None
 
             # --- Stop-loss / Take-profit (skipped when full_control; only agent decides sells) ---
+            # (No changes here, kept for context)
             if not full_control and position and current_price and avg_cost and avg_cost > 0 and pos_qty > 0:
                 pnl_pct = (current_price - avg_cost) / avg_cost * 100
                 if stop_loss_pct is not None and pnl_pct <= -stop_loss_pct:
@@ -225,24 +231,25 @@ def run_agent_cycle():
                 position_size = MAX_POSITION_SIZE_VOLATILE_ONLY
                 add_agent_reasoning(symbol, "guardrail", f"Volatile-only symbol: position size capped to {MAX_POSITION_SIZE_VOLATILE_ONLY:.0%} of cash", {"capped": True})
 
-            cash = get_cash_balance()
-            position = get_position(symbol)
-            pos_qty = float(position["quantity"]) if position else 0
-
-            order_id = None
             if decision.action == "Buy":
-                # Position size as fraction of cash to deploy (already capped for volatile-only)
-                amount = cash * position_size
-                quantity = amount / current_price if current_price else 0
-                if quantity > 0 and amount <= cash:
+                # Position size as fraction of cycle-start cash to deploy
+                amount = cycle_start_cash * position_size
+                current_cash = get_cash_balance()
+                
+                # Check if we still have enough physical cash to execute the planned amount
+                actual_spend = min(amount, current_cash)
+                quantity = actual_spend / current_price if current_price else 0
+                
+                if quantity > 0 and actual_spend > 0:
                     ok, _, _ = execute_buy(symbol, quantity, current_price)
                     if ok:
+                        deployed_this_cycle += actual_spend
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
                         add_agent_reasoning(symbol, "execute", f"Executed buy {quantity:.4f} @ {current_price}", {"order_id": order_id})
                         cycle_updates.append(f"📈 BUY {symbol} {quantity:.2f} @ ${current_price:.2f}")
                     else:
-                        add_agent_reasoning(symbol, "execute", "Buy failed (e.g. insufficient cash)", {})
+                        add_agent_reasoning(symbol, "execute", "Buy failed (check cash balance)", {})
             elif decision.action == "Sell" and pos_qty > 0:
                 # Sell fraction of position
                 sell_qty = pos_qty * decision.position_size
