@@ -50,15 +50,16 @@ def _get_keras_model(seq_len, units=UNITS):
     return model
 
 
-def predict_future_steps(model, last_prices, steps, seq_len):
+def predict_future_steps(model, last_prices, steps, seq_len, min_val=0, range_val=1):
     """Predict next `steps` values recursively. last_prices: array of length seq_len."""
     preds = []
-    window = list(last_prices)
+    # Scale the input window
+    window = [(p - min_val) / range_val for p in last_prices]
     for _ in range(steps):
         X = np.array(window[-seq_len:], dtype=np.float32).reshape(1, seq_len, 1)
-        next_val = float(model.predict(X, verbose=0)[0, 0])
-        preds.append(next_val)
-        window.append(next_val)
+        next_val_scaled = float(model.predict(X, verbose=0)[0, 0])
+        preds.append(next_val_scaled * range_val + min_val)
+        window.append(next_val_scaled)
     return preds
 
 
@@ -76,7 +77,13 @@ def run_algorithm(data_config, source):
         )
 
     series = df["Close"]
-    X, y, idx = build_sequences(series, SEQ_LEN)
+    min_val = float(series.min())
+    max_val = float(series.max())
+    range_val = max_val - min_val if max_val > min_val else 1.0
+    
+    scaled_series = (series - min_val) / range_val
+    
+    X, y, idx = build_sequences(scaled_series, SEQ_LEN)
     if X is None:
         return result_dict("LSTM", {}, None, None, None, error="Insufficient data for sequences (need at least {} points)".format(SEQ_LEN + 10))
 
@@ -85,6 +92,9 @@ def run_algorithm(data_config, source):
     model = _get_keras_model(SEQ_LEN)
     model.fit(X_train, y_train, epochs=EPOCHS, batch_size=min(BATCH_SIZE, len(X_train)), verbose=0)
 
-    preds = model.predict(X_test, verbose=0).flatten()
-    metrics = compute_metrics(y_test, preds)
-    return result_dict("LSTM", metrics, idx_test, y_test, preds)
+    preds_scaled = model.predict(X_test, verbose=0).flatten()
+    preds = preds_scaled * range_val + min_val
+    y_test_unscaled = y_test * range_val + min_val
+    
+    metrics = compute_metrics(y_test_unscaled, preds)
+    return result_dict("LSTM", metrics, idx_test, y_test_unscaled, preds)

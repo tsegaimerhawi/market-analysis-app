@@ -83,12 +83,17 @@ class EnsemblePredictor:
                         SEQ_LEN as lstm_seq_len,
                     )
                     series = df["Close"]
-                    X, y, _ = build_sequences(series, lstm_seq_len)
+                    min_v = float(series.min())
+                    max_v = float(series.max())
+                    rng_v = max_v - min_v if max_v > min_v else 1.0
+                    scaled_series = (series - min_v) / rng_v
+                    
+                    X, y, _ = build_sequences(scaled_series, lstm_seq_len)
                     if X is not None and len(X) >= 20:
                         model = _get_keras_model(lstm_seq_len)
                         model.fit(X, y, epochs=30, batch_size=min(32, len(X)), verbose=0)
                         last_prices = df["Close"].values[-lstm_seq_len:]
-                        preds = predict_future_steps(model, last_prices, steps, lstm_seq_len)
+                        preds = predict_future_steps(model, last_prices, steps, lstm_seq_len, min_val=min_v, range_val=rng_v)
                         results[algo_id] = [float(p) for p in preds]
                         all_preds.append(results[algo_id])
                     continue
