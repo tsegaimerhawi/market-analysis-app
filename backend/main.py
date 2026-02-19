@@ -684,6 +684,17 @@ def _telegram_poll_loop():
         time.sleep(6)
 
 
+def _limit_order_loop():
+    """Background loop: check and execute pending limit orders every 5 minutes."""
+    import time
+    while True:
+        try:
+            _check_pending_limit_orders()
+        except Exception as e:
+            logger.exception("Limit order loop error: %s", e)
+        time.sleep(5 * 60)  # 5 minutes
+
+
 if __name__ == "__main__":
     import threading
     # Start background threads in the reloader child (where Flask runs)
@@ -691,7 +702,8 @@ if __name__ == "__main__":
         threading.Thread(target=_volatile_refresh_loop, daemon=True).start()
         threading.Thread(target=_agent_loop, daemon=True).start()
         threading.Thread(target=_telegram_poll_loop, daemon=True).start()
-        logger.info("Background threads started: volatile refresh, agent loop (first run in 1 min), telegram poll")
+        threading.Thread(target=_limit_order_loop, daemon=True).start()
+        logger.info("Background threads started: volatile refresh, agent loop, telegram poll, limit order monitor")
     port = int(os.environ.get("PORT", 5001))
     # Disable reloader (USE_RELOADER=0) when running the agent 24/7 so file saves don't restart the process and kill the agent thread
     use_reloader = os.environ.get("USE_RELOADER", "true").lower() in ("1", "true", "yes")
