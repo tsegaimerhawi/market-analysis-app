@@ -10,7 +10,7 @@ NEWS_API_KEY = (os.environ.get("NEWS_API_KEY") or os.environ.get("NEWSAPI_KEY") 
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 
-def get_headlines(symbol: str, max_items: int = 15) -> List[str]:
+def get_headlines(symbol: str, max_items: int = 15, as_of_date=None) -> List[str]:
     """
     Return list of headline strings for the symbol.
     If NEWS_API_KEY is set, fetch from NewsAPI.org; else return stub.
@@ -22,11 +22,20 @@ def get_headlines(symbol: str, max_items: int = 15) -> List[str]:
     try:
         import httpx
         from datetime import datetime, timedelta
-        to_date = datetime.utcnow()
+        
+        # Use as_of_date (if provided) to avoid look-ahead bias during backtests
+        if as_of_date is None:
+            to_date = datetime.utcnow()
+        else:
+            to_date = as_of_date if isinstance(as_of_date, datetime) else datetime.fromisoformat(str(as_of_date).replace("Z", ""))
+            
         from_date = (to_date - timedelta(days=2)).strftime("%Y-%m-%d")
+        to_date_str = to_date.strftime("%Y-%m-%d")
+        
         params = {
             "q": symbol,
             "from": from_date,
+            "to": to_date_str,
             "sortBy": "publishedAt",
             "pageSize": min(max_items, 20),
             "apiKey": NEWS_API_KEY,

@@ -66,12 +66,18 @@ def run_backtest(symbol: str, days: int = 90, full_control: bool = False) -> dic
     trade_pnls = []
 
     for i in range(LOOKBACK_MIN, len(closes) - 1):
+        # The current 'simulated' date
+        sim_date = df.index[i]
+        
         history_closes = closes[: i + 1]
         current_price = closes[i]
         next_price = closes[i + 1]
         vol = _volatility_from_closes(history_closes[-60:]) if len(history_closes) >= 60 else None
-        headlines = get_headlines(symbol)
-        macro = get_macro_indicators()
+        
+        # Pass sim_date to prevent look-ahead bias
+        headlines = get_headlines(symbol, as_of_date=sim_date)
+        macro = get_macro_indicators(as_of_date=sim_date)
+        
         decision = orchestrator.decide(
             symbol=symbol,
             history_closes=history_closes,

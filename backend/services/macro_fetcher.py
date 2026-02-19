@@ -10,13 +10,24 @@ from utils.logger import logger
 MACRO_API_KEY = (os.environ.get("MACRO_API_KEY") or os.environ.get("ALPHA_VANTAGE_API_KEY") or "").strip()
 
 
-def get_macro_indicators() -> Dict[str, Any]:
+def get_macro_indicators(as_of_date=None) -> Dict[str, Any]:
     """
     Return dict with macro description and optional series for the Macro agent.
     If no API key, returns stub. Keys: description (str), optional rates, cpi, etc.
     """
-    if not MACRO_API_KEY:
-        return {"description": "CPI and rates stable; no major macro update. Set MACRO_API_KEY for real data."}
+    from datetime import datetime
+    is_historical = False
+    if as_of_date is not None:
+        if isinstance(as_of_date, str):
+            as_of_date = datetime.fromisoformat(as_of_date.replace("Z", ""))
+        if as_of_date.date() < datetime.utcnow().date():
+            is_historical = True
+
+    if not MACRO_API_KEY or is_historical:
+        # Avoid look-ahead bias: if we are in the past, don't return 'latest' real-time data
+        msg = "Macro indicators stable for this period." if is_historical else "CPI and rates stable; no major macro update. Set MACRO_API_KEY for real data."
+        return {"description": msg}
+    
     try:
         # Example: Alpha Vantage has macroeconomic data; adapt URL/params as needed
         import httpx
