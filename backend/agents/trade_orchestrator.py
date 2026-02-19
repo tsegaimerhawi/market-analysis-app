@@ -155,10 +155,12 @@ class TradeOrchestrator:
         )
         composite = max(-1.0, min(1.0, composite))
         avg_confidence = (
-            lstm_signal.confidence_score ** 2 + xgb_signal.confidence_score ** 2
-            + technical_signal.confidence_score ** 2
-            + sentiment.confidence + macro.confidence
-        ) / 5
+            abs(lstm_signal.confidence_score)
+            + abs(xgb_signal.confidence_score)
+            + abs(technical_signal.confidence_score)
+            + sentiment.confidence
+            + macro.confidence
+        ) / 5.0
         avg_confidence = max(0.0, min(1.0, avg_confidence))
 
         # 4b) Signal agreement: count how many of 5 signals agree in direction (use 0.05 so weak positives count when sentiment/macro are 0)
