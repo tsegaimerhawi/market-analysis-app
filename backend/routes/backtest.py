@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 from utils.logger import logger
 
 backtest_bp = Blueprint('backtest', __name__)

@@ -1,5 +1,4 @@
 """Feature construction for price prediction (lags, returns, etc.)."""
-import numpy as np
 import pandas as pd
 
 

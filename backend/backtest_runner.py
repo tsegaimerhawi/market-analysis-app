@@ -3,18 +3,17 @@ Backtest the trading ensemble on historical data.
 Simulates running the orchestrator each day; computes Sharpe, max drawdown, win rate.
 """
 import math
-from typing import List, Optional
 from datetime import datetime, timedelta
+from typing import List, Optional
 
-from services.company_service import get_history
-from services.news_fetcher import get_headlines
-from services.macro_fetcher import get_macro_indicators
-from agents.trade_orchestrator import TradeOrchestrator
-from agents.lstm_predictor import LSTMPredictor
-from agents.xgboost_analyst import XGBoostAnalyst
-from agents.technical_analyst import TechnicalAnalyst
 from agents.llm_manager import LLMManager
-from utils.logger import logger
+from agents.lstm_predictor import LSTMPredictor
+from agents.technical_analyst import TechnicalAnalyst
+from agents.trade_orchestrator import TradeOrchestrator
+from agents.xgboost_analyst import XGBoostAnalyst
+from services.company_service import get_history
+from services.macro_fetcher import get_macro_indicators
+from services.news_fetcher import get_headlines
 
 LOOKBACK_MIN = 35
 INITIAL_CASH = 10_000.0

@@ -1,12 +1,11 @@
-import sys
 import os
-import pandas as pd
-import numpy as np
+import sys
 
 # Add backend to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
 from algorithms.ensemble import EnsemblePredictor, clean_symbol
+
 
 def test_clean_symbol():
     print("Testing clean_symbol...")

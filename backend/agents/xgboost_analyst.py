@@ -4,8 +4,8 @@ target = next-day return direction. Predicts confidence for the ensemble.
 Falls back to mean-reversion placeholder if XGBoost missing or insufficient data.
 """
 from typing import List, Optional
+
 from agents.models import MLSignal
-from utils.logger import logger
 
 FEATURE_LOOKBACK = 25
 RSI_PERIOD = 14
@@ -67,8 +67,8 @@ def _build_features_and_targets(closes: List[float]) -> Optional[tuple]:
 def _train_and_predict_xgb(closes: List[float]) -> Optional[float]:
     """Train XGBoost on features, predict confidence for last row. Returns confidence in [-1,1] or None."""
     try:
-        import xgboost as xgb
         import numpy as np
+        import xgboost as xgb
     except ImportError:
         return None
     data = _build_features_and_targets(closes)

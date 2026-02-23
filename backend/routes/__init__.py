@@ -1,14 +1,15 @@
 from flask import Blueprint
 
+
 # We will register all blueprints here
 def register_routes(app):
-    from .watchlist import watchlist_bp
-    from .company import company_bp
-    from .portfolio import portfolio_bp
     from .agent import agent_bp
-    from .backtest import backtest_bp
     from .algorithms import algorithms_bp
     from .articles import articles_bp
+    from .backtest import backtest_bp
+    from .company import company_bp
+    from .portfolio import portfolio_bp
+    from .watchlist import watchlist_bp
     
     app.register_blueprint(watchlist_bp, url_prefix='/api/watchlist')
     app.register_blueprint(company_bp, url_prefix='/api/company')

@@ -1,8 +1,9 @@
-import os
 import json
-from flask import Blueprint, request, jsonify
+import os
+
 from algorithms import ALGORITHMS
 from algorithms.ensemble import run_future_prediction
+from flask import Blueprint, jsonify, request
 from utils.imports import UPLOAD_FOLDER
 from utils.logger import logger
 

@@ -1,5 +1,6 @@
 """Shared helpers for stock prediction algorithms."""
 import os
+
 import numpy as np
 import pandas as pd
 from utils.data_handler import load_data

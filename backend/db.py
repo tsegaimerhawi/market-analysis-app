@@ -156,7 +156,7 @@ def get_watchlist():
 def _row_to_dict(row):
     if row is None:
         return None
-    return dict(zip(row.keys(), row))
+    return dict(zip(row.keys(), row, strict=False))
 
 
 # --- Portfolio (paper trading) ---

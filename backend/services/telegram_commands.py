@@ -4,8 +4,8 @@ Supports: buy AAPL 10, sell GME all, buy google stock with all cash balance.
 Only processes messages from the chat configured in TELEGRAM_CHAT_ID.
 """
 from utils.logger import logger
-from services.telegram_notify import get_config, get_updates, send_message
 
+from services.telegram_notify import get_config, get_updates, send_message
 
 # Last processed update_id so we pass offset to getUpdates and acknowledge updates
 _last_update_id = 0
@@ -153,7 +153,8 @@ def _parse_command(text):
 
 
 def _run_buy(symbol, quantity):
-    from db import execute_buy, get_cash_balance
+    from db import execute_buy
+
     from services.company_service import get_quote
     quote = get_quote(symbol)
     if quote is None:
@@ -166,7 +167,8 @@ def _run_buy(symbol, quantity):
 
 
 def _run_sell(symbol, qty_or_all):
-    from db import execute_sell, get_position, get_cash_balance
+    from db import execute_sell, get_position
+
     from services.company_service import get_quote
     pos = get_position(symbol)
     if not pos:
@@ -193,6 +195,7 @@ def _run_sell(symbol, qty_or_all):
 def _run_buy_all_cash(symbol):
     """Buy as many shares as possible with full cash balance. Returns (success, message)."""
     from db import execute_buy, get_cash_balance
+
     from services.company_service import get_quote
     cash = get_cash_balance()
     if cash is None or cash <= 0:

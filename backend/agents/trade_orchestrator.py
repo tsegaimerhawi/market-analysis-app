@@ -3,18 +3,17 @@ The Ensemble "Decider": gathers ML/DL and LLM signals, applies weighted decision
 outputs Buy/Sell/Hold with position_size. Includes hard guardrails (volatility, spread).
 """
 import os
-from typing import List, Optional, Callable
+from typing import Callable, Optional
+
+from utils.logger import logger
+
+from agents.llm_manager import LLMManager
+from agents.lstm_predictor import LSTMPredictor
 from agents.models import (
     TradeDecision,
-    MLSignal,
-    SentimentOutput,
-    MacroOutput,
 )
-from agents.lstm_predictor import LSTMPredictor
-from agents.xgboost_analyst import XGBoostAnalyst
 from agents.technical_analyst import TechnicalAnalyst
-from agents.llm_manager import LLMManager
-from utils.logger import logger
+from agents.xgboost_analyst import XGBoostAnalyst
 
 try:
     from config import config

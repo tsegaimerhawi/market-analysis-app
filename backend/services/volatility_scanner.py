@@ -3,10 +3,11 @@ Volatility scanner: identifies volatile stocks from recent market data (e.g. las
 Biases toward smaller / startup-like companies (lower market cap = more volatile in practice).
 Used when "Volatile stocks" is on so the agent can buy/sell these names with stop-loss/take-profit.
 """
+import json
 import math
 import os
-import json
 from typing import List, Optional, Tuple
+
 from utils.logger import logger
 
 # Max market cap (USD) to count as "small/startup-like" for extra volatility weight. Above this we still rank by vol only.

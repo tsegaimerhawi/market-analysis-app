@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, Response
-from db import get_watchlist, add_to_watchlist, remove_from_watchlist
-from typing import Any, Tuple
+from typing import Any
+
+from db import add_to_watchlist, get_watchlist, remove_from_watchlist
+from flask import Blueprint, jsonify, request
 
 watchlist_bp = Blueprint('watchlist', __name__)
 

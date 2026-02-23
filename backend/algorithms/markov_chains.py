@@ -1,13 +1,15 @@
-from utils.imports import *
+import pandas as pd
+import numpy as np
 from utils.logger import logger
-from algorithms.base import get_data, compute_metrics, result_dict
+
+from algorithms.base import compute_metrics, get_data, result_dict
 
 
 def build_transition_matrix(states_series, n_states=5):
     if states_series.empty or len(states_series) < 2:
         return np.full((n_states, n_states), np.nan)
     matrix = np.zeros((n_states, n_states))
-    for i, j in zip(states_series[:-1], states_series[1:]):
+    for i, j in zip(states_series[:-1], states_series[1:], strict=False):
         if pd.notna(i) and pd.notna(j):
             i_int, j_int = int(i), int(j)
             if 0 <= i_int < n_states and 0 <= j_int < n_states:
@@ -44,7 +46,7 @@ def compute_steady_state(trans_matrix, iterations=200):
 
     try:
         P_final = np.linalg.matrix_power(P_work, iterations)
-    except np.linalg.LinAlgError as e:
+    except np.linalg.LinAlgError:
         logger.exception("Error during matrix_power; returning NaN steady state.")
         return np.full(n_states, np.nan)
 
@@ -194,7 +196,7 @@ def run_algorithm(data, csv_file_name):
                 f"- Probabilities from state {current_state_label} are undefined (state likely not visited as origin, or no outgoing transitions observed)."
             )
         else:
-            for state_lbl, prob in zip(state_labels[:n_markov_states], current_probs):
+            for state_lbl, prob in zip(state_labels[:n_markov_states], current_probs, strict=False):
                 if pd.notna(prob):
                     logger.debug(f"- {state_lbl:<12}: {prob:.2%}")
                 else:
@@ -209,7 +211,7 @@ def run_algorithm(data, csv_file_name):
         if steady_state_probs.size > 0 and not np.all(np.isnan(steady_state_probs)):
             logger.debug("\nLong-term Market State Distribution (Steady State):")
             for state_lbl, prob in zip(
-                state_labels[:n_markov_states], steady_state_probs
+                state_labels[:n_markov_states], steady_state_probs, strict=False
             ):
                 if pd.notna(prob):
                     logger.info(f"- {state_lbl:<12}: {prob:.2%}")

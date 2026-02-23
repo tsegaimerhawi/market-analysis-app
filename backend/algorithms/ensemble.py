@@ -1,10 +1,12 @@
 """Ensemble and multi-step future prediction module."""
-import numpy as np
-import pandas as pd
-from algorithms.base import get_data, result_dict
-from algorithms.features import build_lag_features
 import datetime
+
+import pandas as pd
 from utils.logger import logger
+
+from algorithms.base import get_data
+from algorithms.features import build_lag_features
+
 
 def clean_symbol(symbol):
     """Strip $ and whitespace."""
@@ -77,10 +79,12 @@ class EnsemblePredictor:
             try:
                 if algo_id == "lstm":
                     from algorithms.lstm import (
-                        build_sequences,
-                        _get_keras_model,
-                        predict_future_steps,
                         SEQ_LEN as lstm_seq_len,
+                    )
+                    from algorithms.lstm import (
+                        _get_keras_model,
+                        build_sequences,
+                        predict_future_steps,
                     )
                     series = df["Close"]
                     min_v = float(series.min())

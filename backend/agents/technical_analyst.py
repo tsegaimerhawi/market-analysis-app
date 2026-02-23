@@ -3,8 +3,10 @@ Technical indicators: RSI, MACD, Bollinger %B.
 Outputs a single MLSignal for the ensemble (Technical weight, e.g. 10%).
 """
 from typing import List, Optional
-from agents.models import MLSignal
+
 from utils.logger import logger
+
+from agents.models import MLSignal
 
 RSI_PERIOD = 14
 MACD_FAST = 12
@@ -47,7 +49,7 @@ def _macd_signal(closes: List[float], fast: int = MACD_FAST, slow: int = MACD_SL
         return out
     fast_ema = ema(closes, fast)
     slow_ema = ema(closes, slow)
-    macd_line = [f - s for f, s in zip(fast_ema, slow_ema)]
+    macd_line = [f - s for f, s in zip(fast_ema, slow_ema, strict=False)]
     if len(macd_line) < signal:
         return None
     signal_line = ema(macd_line, signal)

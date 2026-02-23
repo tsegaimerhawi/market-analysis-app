@@ -1,5 +1,6 @@
-from flask import Blueprint, request, jsonify
-from services.company_service import get_info, search as company_search
+from flask import Blueprint, jsonify, request
+from services.company_service import get_info
+from services.company_service import search as company_search
 
 company_bp = Blueprint('company', __name__)
 

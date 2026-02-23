@@ -7,6 +7,7 @@ Chat ID: use your numeric user id (e.g. 123456789) or a group id (negative numbe
 Get it by messaging @userinfobot or by calling getUpdates on your bot after you send /start.
 """
 import os
+
 from utils.logger import logger
 
 TELEGRAM_API_BASE = "https://api.telegram.org"

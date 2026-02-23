@@ -1,7 +1,8 @@
 """K-Nearest Neighbors for stock price prediction."""
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
-from algorithms.base import get_data, compute_metrics, result_dict
+
+from algorithms.base import compute_metrics, get_data, result_dict
 from algorithms.features import build_lag_features, train_test_split
 
 

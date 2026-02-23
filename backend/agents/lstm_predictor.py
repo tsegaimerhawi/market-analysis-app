@@ -3,9 +3,9 @@ LSTM predictor: uses a small Keras LSTM on recent price history when available.
 Trains on last N days of returns, predicts next-step return -> confidence_score.
 Falls back to momentum placeholder if TF missing or insufficient data.
 """
-from typing import Optional, List
+from typing import List, Optional
+
 from agents.models import MLSignal
-from utils.logger import logger
 
 SEQ_LEN = 20
 MIN_POINTS = SEQ_LEN + 15

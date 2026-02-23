@@ -1,17 +1,17 @@
 # Algorithm registry: name -> run_algorithm(data_config, csv_path) -> result dict
 from algorithms import (
-    markov_chains,
-    linear_regression,
     arima,
-    random_forest,
-    xgboost_algo,
-    svm_algo,
-    knn_algo,
-    gradient_boosting,
-    moving_average,
     elastic_net,
-    lstm,
+    gradient_boosting,
+    knn_algo,
     lightgbm_algo,
+    linear_regression,
+    lstm,
+    markov_chains,
+    moving_average,
+    random_forest,
+    svm_algo,
+    xgboost_algo,
 )
 
 ALGORITHMS = {

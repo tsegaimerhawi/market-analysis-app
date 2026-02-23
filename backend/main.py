@@ -1,11 +1,12 @@
 import os
 import threading
+
+from config import config
+from db import get_agent_enabled, init_db
 from flask import Flask
 from flask_cors import CORS
-from utils.logger import logger
-from db import init_db, get_agent_enabled
 from routes import register_routes
-from config import config
+from utils.logger import logger
 
 app = Flask(__name__)
 CORS(app)
@@ -21,6 +22,7 @@ register_routes(app)
 def _refresh_volatile_list():
     """Update volatile_symbols.json from universe. Called every 30 min."""
     import json
+
     from services.volatility_scanner import get_volatile_symbols
     
     universe_path = os.path.join(os.path.dirname(__file__), "data", "volatile_universe.json")
@@ -79,6 +81,7 @@ def _agent_loop():
 
 def _telegram_poll_loop():
     import time
+
     from services.telegram_notify import get_config
     token, chat_id = get_config()
     if token and chat_id:
@@ -93,6 +96,7 @@ def _telegram_poll_loop():
 
 def _limit_order_loop():
     import time
+
     from routes.portfolio import _check_pending_limit_orders
     while True:
         try:

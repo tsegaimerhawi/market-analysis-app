@@ -2,8 +2,8 @@
 Pydantic models for agent outputs. Ensures LLMs and orchestrator return strictly valid data.
 """
 from typing import Literal, Optional
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field
 
 # --- LLM Agent outputs (structured) ---
 

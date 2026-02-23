@@ -3,9 +3,8 @@ Single-cycle runner for the trading agent. Called when agent is enabled (e.g. by
 Gathers data for each symbol (watchlist + optional volatile list), runs TradeOrchestrator, logs reasoning, and executes paper trades.
 When Volatile is on: default stop-loss applies if none set; position size is capped for volatile-only symbols to limit risk.
 """
-import json
-import sys
 import os
+import sys
 
 # Safeguards when volatile stocks are enabled
 DEFAULT_STOP_LOSS_PCT_WHEN_VOLATILE = 5.0   # use this if user didn't set stop-loss (limit losses)
@@ -14,32 +13,36 @@ MAX_POSITION_SIZE_VOLATILE_ONLY = 0.15      # max 15% of cash per buy for symbol
 # Ensure backend root is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from agents.llm_manager import LLMManager
+from agents.lstm_predictor import LSTMPredictor
+from agents.trade_orchestrator import TradeOrchestrator
+from agents.xgboost_analyst import XGBoostAnalyst
 from db import (
-    get_watchlist,
-    get_cash_balance,
-    get_positions,
-    get_position,
+    add_agent_history,
+    add_agent_reasoning,
     execute_buy,
     execute_sell,
-    add_agent_reasoning,
-    add_agent_history,
     get_agent_enabled,
+    get_agent_full_control,
     get_agent_include_volatile,
     get_agent_stop_loss_pct,
     get_agent_take_profit_pct,
-    get_agent_full_control,
-    set_last_agent_history_executed,
+    get_cash_balance,
     get_orders,
+    get_position,
+    get_positions,
+    get_watchlist,
+    set_last_agent_history_executed,
 )
 from services.company_service import get_history, get_quote
-from services.volatility_scanner import get_volatile_symbols, get_candidate_symbols_from_file, get_normal_symbols_from_file
-from services.telegram_notify import send_message as send_telegram_message
-from services.news_fetcher import get_headlines
 from services.macro_fetcher import get_macro_indicators
-from agents.trade_orchestrator import TradeOrchestrator
-from agents.llm_manager import LLMManager
-from agents.lstm_predictor import LSTMPredictor
-from agents.xgboost_analyst import XGBoostAnalyst
+from services.news_fetcher import get_headlines
+from services.telegram_notify import send_message as send_telegram_message
+from services.volatility_scanner import (
+    get_candidate_symbols_from_file,
+    get_normal_symbols_from_file,
+    get_volatile_symbols,
+)
 from utils.logger import logger
 
 

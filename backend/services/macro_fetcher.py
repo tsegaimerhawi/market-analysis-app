@@ -3,7 +3,8 @@ Fetch macro indicators (rates, CPI, etc.) when MACRO_API_KEY or similar is set.
 Otherwise return stub description for Macro LLM agent.
 """
 import os
-from typing import Dict, Any
+from typing import Any, Dict
+
 from utils.logger import logger
 
 # Optional: set MACRO_API_KEY or use a free endpoint (e.g. FRED, Alpha Vantage) for rates/CPI

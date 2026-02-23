@@ -1,6 +1,7 @@
-import os
 import json
-from flask import Blueprint, request, jsonify
+import os
+
+from flask import Blueprint, jsonify, request
 from services.article_service import get_newspapers, scrape_articles
 from utils.logger import logger
 

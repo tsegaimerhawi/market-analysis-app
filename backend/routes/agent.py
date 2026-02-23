@@ -1,12 +1,21 @@
-import os
 import json
-from flask import Blueprint, request, jsonify
+import os
+
 from db import (
-    get_agent_enabled, set_agent_enabled, get_agent_include_volatile,
-    set_agent_include_volatile, get_agent_stop_loss_pct, set_agent_stop_loss_pct,
-    get_agent_take_profit_pct, set_agent_take_profit_pct, get_agent_full_control,
-    set_agent_full_control, get_agent_reasoning, get_agent_history
+    get_agent_enabled,
+    get_agent_full_control,
+    get_agent_history,
+    get_agent_include_volatile,
+    get_agent_reasoning,
+    get_agent_stop_loss_pct,
+    get_agent_take_profit_pct,
+    set_agent_enabled,
+    set_agent_full_control,
+    set_agent_include_volatile,
+    set_agent_stop_loss_pct,
+    set_agent_take_profit_pct,
 )
+from flask import Blueprint, jsonify, request
 from utils.logger import logger
 
 agent_bp = Blueprint('agent', __name__)
@@ -135,7 +144,11 @@ def api_volatile_candidates_refresh():
 @agent_bp.route("/volatile-symbols", methods=["GET"])
 def api_agent_volatile_symbols():
     try:
-        from services.volatility_scanner import get_candidate_symbols_from_file, get_volatile_symbols_with_scores, get_volatile_symbols
+        from services.volatility_scanner import (
+            get_candidate_symbols_from_file,
+            get_volatile_symbols,
+            get_volatile_symbols_with_scores,
+        )
         candidates = get_candidate_symbols_from_file()
         if not candidates:
             return jsonify({"symbols": [], "source": "algorithm"})

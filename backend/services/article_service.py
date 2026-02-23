@@ -1,12 +1,13 @@
 """Fetch articles from news sources (RSS feeds)."""
 from datetime import datetime
+
 from utils.logger import logger
 
 
 def get_newspapers():
     """Load list of newspapers from data file."""
-    import os
     import json
+    import os
     path = os.path.join(os.path.dirname(__file__), "..", "data", "newspapers.json")
     try:
         with open(path, "r", encoding="utf-8") as f:

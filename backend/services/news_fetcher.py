@@ -4,6 +4,7 @@ Otherwise return stub for Sentiment agent.
 """
 import os
 from typing import List
+
 from utils.logger import logger
 
 NEWS_API_KEY = (os.environ.get("NEWS_API_KEY") or os.environ.get("NEWSAPI_KEY") or "").strip()
@@ -20,8 +21,9 @@ def get_headlines(symbol: str, max_items: int = 15, as_of_date=None) -> List[str
     if not NEWS_API_KEY:
         return [f"Market update for {symbol} (set NEWS_API_KEY for real headlines)."]
     try:
-        import httpx
         from datetime import datetime, timedelta
+
+        import httpx
         
         # Use as_of_date (if provided) to avoid look-ahead bias during backtests
         if as_of_date is None:

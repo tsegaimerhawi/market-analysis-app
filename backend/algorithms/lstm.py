@@ -1,6 +1,7 @@
 """Simple LSTM for stock price prediction."""
 import numpy as np
-from algorithms.base import get_data, compute_metrics, result_dict
+
+from algorithms.base import compute_metrics, get_data, result_dict
 
 # Default sequence length and model size for a "simple" LSTM
 SEQ_LEN = 20
