@@ -2,6 +2,7 @@
 Backtest the trading ensemble on historical data.
 Simulates running the orchestrator each day; computes Sharpe, max drawdown, win rate.
 """
+
 import math
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -67,16 +68,16 @@ def run_backtest(symbol: str, days: int = 90, full_control: bool = False) -> dic
     for i in range(LOOKBACK_MIN, len(closes) - 1):
         # The current 'simulated' date
         sim_date = df.index[i]
-        
+
         history_closes = closes[: i + 1]
         current_price = closes[i]
         next_price = closes[i + 1]
         vol = _volatility_from_closes(history_closes[-60:]) if len(history_closes) >= 60 else None
-        
+
         # Pass sim_date to prevent look-ahead bias
         headlines = get_headlines(symbol, as_of_date=sim_date)
         macro = get_macro_indicators(as_of_date=sim_date)
-        
+
         decision = orchestrator.decide(
             symbol=symbol,
             history_closes=history_closes,
@@ -91,7 +92,11 @@ def run_backtest(symbol: str, days: int = 90, full_control: bool = False) -> dic
             amount = cash * decision.position_size
             qty = amount / current_price if current_price else 0
             if qty > 0:
-                cost_basis = (cost_basis * position + amount) / (position + qty) if (position + qty) else current_price
+                cost_basis = (
+                    (cost_basis * position + amount) / (position + qty)
+                    if (position + qty)
+                    else current_price
+                )
                 position += qty
                 cash -= amount
         elif decision.action == "Sell" and position > 0 and decision.position_size > 0:

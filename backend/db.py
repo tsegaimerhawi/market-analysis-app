@@ -1,4 +1,5 @@
 """SQLite watchlist database."""
+
 import json
 import os
 import sqlite3
@@ -28,14 +29,21 @@ def init_db():
                 cash_balance REAL NOT NULL DEFAULT 100000
             )
         """)
-        conn.execute("INSERT OR IGNORE INTO account (id, cash_balance) VALUES (1, ?)", (DEFAULT_PAPER_CASH,))
+        conn.execute(
+            "INSERT OR IGNORE INTO account (id, cash_balance) VALUES (1, ?)", (DEFAULT_PAPER_CASH,)
+        )
         try:
-            conn.execute(f"ALTER TABLE account ADD COLUMN initial_balance REAL DEFAULT {DEFAULT_PAPER_CASH}")
+            conn.execute(
+                f"ALTER TABLE account ADD COLUMN initial_balance REAL DEFAULT {DEFAULT_PAPER_CASH}"
+            )
             conn.commit()
         except sqlite3.OperationalError:
             pass
         try:
-            conn.execute("UPDATE account SET initial_balance = ? WHERE id = 1 AND initial_balance IS NULL", (DEFAULT_PAPER_CASH,))
+            conn.execute(
+                "UPDATE account SET initial_balance = ? WHERE id = 1 AND initial_balance IS NULL",
+                (DEFAULT_PAPER_CASH,),
+            )
             conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -136,10 +144,14 @@ def add_to_watchlist(symbol, company_name=None):
 def remove_from_watchlist(symbol_or_id):
     """Remove by symbol (e.g. 'AAPL') or by id (integer). Returns True if deleted."""
     with _conn() as conn:
-        if isinstance(symbol_or_id, int) or (isinstance(symbol_or_id, str) and symbol_or_id.isdigit()):
+        if isinstance(symbol_or_id, int) or (
+            isinstance(symbol_or_id, str) and symbol_or_id.isdigit()
+        ):
             cur = conn.execute("DELETE FROM watchlist WHERE id = ?", (int(symbol_or_id),))
         else:
-            cur = conn.execute("DELETE FROM watchlist WHERE symbol = ?", (str(symbol_or_id).strip().upper(),))
+            cur = conn.execute(
+                "DELETE FROM watchlist WHERE symbol = ?", (str(symbol_or_id).strip().upper(),)
+            )
         conn.commit()
         return cur.rowcount > 0
 
@@ -160,6 +172,7 @@ def _row_to_dict(row):
 
 
 # --- Portfolio (paper trading) ---
+
 
 def get_cash_balance():
     """Return current paper cash balance."""
@@ -225,7 +238,10 @@ def execute_buy(symbol, quantity, price):
         if cash < total:
             return False, "Insufficient cash", None
         conn.execute("UPDATE account SET cash_balance = cash_balance - ? WHERE id = 1", (total,))
-        row = conn.execute("SELECT id, symbol, quantity, avg_cost, updated_at FROM portfolio WHERE symbol = ?", (symbol,)).fetchone()
+        row = conn.execute(
+            "SELECT id, symbol, quantity, avg_cost, updated_at FROM portfolio WHERE symbol = ?",
+            (symbol,),
+        ).fetchone()
         if row:
             current_qty = float(row["quantity"])
             new_qty = current_qty + quantity
@@ -259,7 +275,10 @@ def execute_sell(symbol, quantity, price):
     total = quantity * price
     now = datetime.utcnow().isoformat()
     with _conn() as conn:
-        row = conn.execute("SELECT id, symbol, quantity, avg_cost, updated_at FROM portfolio WHERE symbol = ?", (symbol,)).fetchone()
+        row = conn.execute(
+            "SELECT id, symbol, quantity, avg_cost, updated_at FROM portfolio WHERE symbol = ?",
+            (symbol,),
+        ).fetchone()
         if not row:
             return False, "No position to sell", None
         current_qty = float(row["quantity"])
@@ -297,7 +316,10 @@ def reset_paper_account(initial_cash=None):
     amount = float(initial_cash) if initial_cash is not None else DEFAULT_PAPER_CASH
     amount = max(0.0, amount)
     with _conn() as conn:
-        conn.execute("UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1", (amount, amount))
+        conn.execute(
+            "UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1",
+            (amount, amount),
+        )
         conn.execute("DELETE FROM portfolio")
         conn.execute("DELETE FROM orders")
         conn.execute("DELETE FROM limit_orders")
@@ -357,45 +379,59 @@ def mark_limit_order_filled(order_id):
 def cancel_limit_order(order_id):
     """Cancel a pending limit order. Returns True if cancelled."""
     with _conn() as conn:
-        cur = conn.execute("UPDATE limit_orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'", (order_id,))
+        cur = conn.execute(
+            "UPDATE limit_orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'",
+            (order_id,),
+        )
         conn.commit()
         return cur.rowcount > 0
 
 
 # --- Trading agent ---
 
+
 def get_agent_enabled():
     """Return True if the auto-trading agent is enabled."""
     with _conn() as conn:
         row = conn.execute("SELECT value FROM agent_settings WHERE key = 'enabled'").fetchone()
-        return (row and row["value"] == "1")
+        return row and row["value"] == "1"
 
 
 def set_agent_enabled(enabled):
     """Set agent on/off."""
     with _conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('enabled', ?)", ("1" if enabled else "0",))
+        conn.execute(
+            "INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('enabled', ?)",
+            ("1" if enabled else "0",),
+        )
         conn.commit()
 
 
 def get_agent_include_volatile():
     """Return True if agent should also trade volatile stocks (not in watchlist)."""
     with _conn() as conn:
-        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'include_volatile'").fetchone()
-        return (row and row["value"] == "1")
+        row = conn.execute(
+            "SELECT value FROM agent_settings WHERE key = 'include_volatile'"
+        ).fetchone()
+        return row and row["value"] == "1"
 
 
 def set_agent_include_volatile(include):
     """Set whether to include volatile stocks in agent cycle."""
     with _conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('include_volatile', ?)", ("1" if include else "0",))
+        conn.execute(
+            "INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('include_volatile', ?)",
+            ("1" if include else "0",),
+        )
         conn.commit()
 
 
 def get_agent_stop_loss_pct():
     """Return stop-loss percentage (e.g. 5 = sell if position down 5%). None if disabled."""
     with _conn() as conn:
-        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'stop_loss_pct'").fetchone()
+        row = conn.execute(
+            "SELECT value FROM agent_settings WHERE key = 'stop_loss_pct'"
+        ).fetchone()
         if not row or row["value"] is None or row["value"] == "":
             return None
         try:
@@ -408,14 +444,18 @@ def set_agent_stop_loss_pct(pct):
     """Set stop-loss percentage. None or 0 to disable."""
     val = str(pct) if pct is not None and float(pct) > 0 else ""
     with _conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('stop_loss_pct', ?)", (val,))
+        conn.execute(
+            "INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('stop_loss_pct', ?)", (val,)
+        )
         conn.commit()
 
 
 def get_agent_take_profit_pct():
     """Return take-profit percentage (e.g. 10 = sell if position up 10%). None if disabled."""
     with _conn() as conn:
-        row = conn.execute("SELECT value FROM agent_settings WHERE key = 'take_profit_pct'").fetchone()
+        row = conn.execute(
+            "SELECT value FROM agent_settings WHERE key = 'take_profit_pct'"
+        ).fetchone()
         if not row or row["value"] is None or row["value"] == "":
             return None
         try:
@@ -428,24 +468,31 @@ def set_agent_take_profit_pct(pct):
     """Set take-profit percentage. None or 0 to disable."""
     val = str(pct) if pct is not None and float(pct) > 0 else ""
     with _conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('take_profit_pct', ?)", (val,))
+        conn.execute(
+            "INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('take_profit_pct', ?)",
+            (val,),
+        )
         conn.commit()
 
 
 def get_agent_full_control():
     """Return True if agent has full control (no guardrails, no stop-loss/take-profit)."""
     import os
+
     if os.environ.get("AGENT_FULL_CONTROL") == "1":
         return True
     with _conn() as conn:
         row = conn.execute("SELECT value FROM agent_settings WHERE key = 'full_control'").fetchone()
-        return (row and row["value"] == "1")
+        return row and row["value"] == "1"
 
 
 def set_agent_full_control(full_control):
     """Set whether the agent has full control (no guardrails, no stop-loss/take-profit)."""
     with _conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('full_control', ?)", ("1" if full_control else "0",))
+        conn.execute(
+            "INSERT OR REPLACE INTO agent_settings (key, value) VALUES ('full_control', ?)",
+            ("1" if full_control else "0",),
+        )
         conn.commit()
 
 
@@ -454,7 +501,13 @@ def add_agent_reasoning(symbol, step, message, data=None):
     with _conn() as conn:
         conn.execute(
             "INSERT INTO agent_reasoning (created_at, symbol, step, message, data) VALUES (?, ?, ?, ?, ?)",
-            (datetime.utcnow().isoformat(), symbol, step, message, json.dumps(data) if data is not None else None),
+            (
+                datetime.utcnow().isoformat(),
+                symbol,
+                step,
+                message,
+                json.dumps(data) if data is not None else None,
+            ),
         )
         conn.commit()
 
@@ -484,13 +537,24 @@ def get_agent_reasoning(limit=100, symbol=None):
         return out
 
 
-def add_agent_history(symbol, action, position_size, reason, executed=False, order_id=None, guardrail_triggered=False):
+def add_agent_history(
+    symbol, action, position_size, reason, executed=False, order_id=None, guardrail_triggered=False
+):
     """Log an agent decision/trade to history."""
     with _conn() as conn:
         conn.execute(
             """INSERT INTO agent_history (created_at, symbol, action, position_size, reason, executed, order_id, guardrail_triggered)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (datetime.utcnow().isoformat(), symbol, action, float(position_size), reason, 1 if executed else 0, order_id, 1 if guardrail_triggered else 0),
+            (
+                datetime.utcnow().isoformat(),
+                symbol,
+                action,
+                float(position_size),
+                reason,
+                1 if executed else 0,
+                order_id,
+                1 if guardrail_triggered else 0,
+            ),
         )
         conn.commit()
 

@@ -3,6 +3,7 @@ Volatility scanner: identifies volatile stocks from recent market data (e.g. las
 Biases toward smaller / startup-like companies (lower market cap = more volatile in practice).
 Used when "Volatile stocks" is on so the agent can buy/sell these names with stop-loss/take-profit.
 """
+
 import json
 import math
 import os
@@ -10,17 +11,21 @@ from typing import List, Optional, Tuple
 
 from utils.logger import logger
 
-# Max market cap (USD) to count as "small/startup-like" for extra volatility weight. Above this we still rank by vol only.
+# Max market cap (USD) to count as "small/startup-like" for extra volatility weight.
+# Above this we still rank by vol only.
 SMALL_CAP_CUTOFF = 50_000_000_000  # 50B
 # How many hours of bars to use for volatility (approximate trading hours in one day)
 HOURS_LOOKBACK = 8
 # Min number of price bars required to compute volatility
 MIN_BARS = 4
-# Symbols to always include in the volatile list when they're in candidates and have valid data (e.g. high-interest names)
+# Symbols to always include in the volatile list when they're in candidates
+# and have valid data (e.g. high-interest names)
 ALWAYS_INCLUDE_IN_VOLATILE = ["GME", "AMC"]
 
 
-def _get_intraday_closes(symbol: str, interval: str = "1h", period: str = "5d") -> Optional[List[float]]:
+def _get_intraday_closes(
+    symbol: str, interval: str = "1h", period: str = "5d"
+) -> Optional[List[float]]:
     """
     Fetch recent intraday close prices. Uses ~8 hours of data when available (last 8 bars of 1h).
     Falls back to daily data (last 5 days) if intraday is unavailable (e.g. outside market hours).
@@ -74,6 +79,7 @@ def _get_market_cap(symbol: str) -> Optional[float]:
         return None
     try:
         import yfinance as yf
+
         ticker = yf.Ticker(symbol)
         info = ticker.info
         cap = info.get("marketCap") or info.get("enterpriseValue")
@@ -112,7 +118,8 @@ def get_volatile_symbols(
 ) -> List[str]:
     """
     Rank candidates by 8-hour volatility (with small-cap bias) and return top N.
-    Symbols in ALWAYS_INCLUDE_IN_VOLATILE (e.g. GME, AMC) are included first when they have valid data.
+    Symbols in ALWAYS_INCLUDE_IN_VOLATILE (e.g. GME, AMC) are included first
+    when they have valid data.
     candidate_symbols: list of tickers to scan (e.g. from volatile_symbols.json).
     """
     candidates_set = {(s or "").strip().upper() for s in candidate_symbols if (s or "").strip()}
@@ -135,7 +142,7 @@ def get_volatile_symbols(
     ordered = []
     seen = set()
     for s in always:
-        for sym, score in results:
+        for sym, _score in results:
             if sym == s and sym not in seen:
                 ordered.append(sym)
                 seen.add(sym)
@@ -163,7 +170,9 @@ def get_volatile_symbols_with_scores(
             score_cap = compute_volatility_score(sym)
             if score_cap is not None:
                 vol_score, cap = score_cap
-                results.append({"symbol": sym, "volatility_score": round(vol_score, 4), "market_cap": cap})
+                results.append(
+                    {"symbol": sym, "volatility_score": round(vol_score, 4), "market_cap": cap}
+                )
         except Exception:
             continue
     results.sort(key=lambda x: x["volatility_score"], reverse=True)
@@ -182,7 +191,10 @@ def get_candidate_symbols_from_file() -> List[str]:
 
 
 def get_normal_symbols_from_file() -> List[str]:
-    """Load normal/stable stock symbols from data/normal_symbols.json (e.g. AAPL, NVDA, AMZN, META)."""
+    """
+    Load normal/stable stock symbols from data/normal_symbols.json
+    (e.g. AAPL, NVDA, AMZN, META).
+    """
     path = os.path.join(os.path.dirname(__file__), "..", "data", "normal_symbols.json")
     try:
         with open(path, "r", encoding="utf-8") as f:

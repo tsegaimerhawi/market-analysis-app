@@ -17,7 +17,8 @@ from db import (
 from flask import Blueprint, jsonify, request
 from services.company_service import get_quote
 
-portfolio_bp = Blueprint('portfolio', __name__)
+portfolio_bp = Blueprint("portfolio", __name__)
+
 
 def _check_pending_limit_orders():
     """Execute any pending limit orders whose price condition is met."""
@@ -26,7 +27,12 @@ def _check_pending_limit_orders():
         if not quote:
             continue
         price = quote["price"]
-        sym, side, qty, limit = order["symbol"], order["side"], order["quantity"], float(order["limit_price"])
+        sym, side, qty, limit = (
+            order["symbol"],
+            order["side"],
+            order["quantity"],
+            float(order["limit_price"]),
+        )
         if side == "buy" and price <= limit:
             ok, _, _ = execute_buy(sym, qty, price)
             if ok:
@@ -38,6 +44,7 @@ def _check_pending_limit_orders():
                 if ok:
                     mark_limit_order_filled(order["id"])
 
+
 @portfolio_bp.route("/", methods=["GET"])
 def api_portfolio():
     """Return cash balance, initial balance, positions, and recent orders."""
@@ -46,12 +53,15 @@ def api_portfolio():
     initial_balance = get_initial_balance()
     positions = get_positions()
     orders = get_orders(limit=30)
-    return jsonify({
-        "cash_balance": cash,
-        "initial_balance": initial_balance,
-        "positions": positions,
-        "orders": orders,
-    })
+    return jsonify(
+        {
+            "cash_balance": cash,
+            "initial_balance": initial_balance,
+            "positions": positions,
+            "orders": orders,
+        }
+    )
+
 
 @portfolio_bp.route("/reset", methods=["POST"])
 def api_portfolio_reset():
@@ -59,12 +69,15 @@ def api_portfolio_reset():
     data = request.get_json(silent=True) or {}
     initial_cash = data.get("initial_cash")
     cash = reset_paper_account(initial_cash=initial_cash)
-    return jsonify({
-        "message": "Paper account reset.",
-        "cash_balance": cash,
-        "positions": [],
-        "orders": [],
-    })
+    return jsonify(
+        {
+            "message": "Paper account reset.",
+            "cash_balance": cash,
+            "positions": [],
+            "orders": [],
+        }
+    )
+
 
 @portfolio_bp.route("/cash", methods=["POST"])
 def api_portfolio_cash():
@@ -81,6 +94,7 @@ def api_portfolio_cash():
     if not ok:
         return jsonify({"error": result}), 400
     return jsonify({"message": f"{action.capitalize()} ${amount:,.2f}", "cash_balance": result})
+
 
 # Also including some order-related routes that were in main.py but fit here
 @portfolio_bp.route("/order", methods=["POST"])
@@ -110,10 +124,12 @@ def api_order():
         order, err = add_limit_order(symbol, side, quantity, limit_price)
         if err:
             return jsonify({"error": err}), 400
-        return jsonify({
-            "message": f"Limit {side} {quantity} {symbol} @ {limit_price} (pending)",
-            "limit_order": order,
-        })
+        return jsonify(
+            {
+                "message": f"Limit {side} {quantity} {symbol} @ {limit_price} (pending)",
+                "limit_order": order,
+            }
+        )
     quote = get_quote(symbol)
     if quote is None:
         return jsonify({"error": "Could not get price for symbol"}), 400
@@ -124,17 +140,21 @@ def api_order():
         ok, result, cash = execute_sell(symbol, quantity, price)
     if not ok:
         return jsonify({"error": result}), 400
-    return jsonify({
-        "message": f"{side.capitalize()} {quantity} {symbol} @ {price}",
-        "positions": result,
-        "cash_balance": cash,
-    })
+    return jsonify(
+        {
+            "message": f"{side.capitalize()} {quantity} {symbol} @ {price}",
+            "positions": result,
+            "cash_balance": cash,
+        }
+    )
+
 
 @portfolio_bp.route("/limit-orders", methods=["GET"])
 def api_limit_orders():
     """Return limit orders."""
     orders = get_limit_orders(limit=50)
     return jsonify({"limit_orders": orders})
+
 
 @portfolio_bp.route("/limit-orders/<int:order_id>", methods=["DELETE"])
 def api_limit_order_cancel(order_id):

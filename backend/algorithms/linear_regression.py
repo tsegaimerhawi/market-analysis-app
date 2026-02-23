@@ -1,4 +1,5 @@
 """Linear Regression for stock price prediction."""
+
 from sklearn.linear_model import LinearRegression
 
 from algorithms.base import compute_metrics, get_data, result_dict
@@ -8,10 +9,14 @@ from algorithms.features import build_lag_features, train_test_split
 def run_algorithm(data_config, source):
     df = get_data(data_config, source)
     if df is None:
-        return result_dict("Linear Regression", {}, None, None, None, error="Failed to load or filter data")
+        return result_dict(
+            "Linear Regression", {}, None, None, None, error="Failed to load or filter data"
+        )
     X, y, idx = build_lag_features(df["Close"], n_lags=5)
     if X is None:
-        return result_dict("Linear Regression", {}, None, None, None, error="Insufficient data for features")
+        return result_dict(
+            "Linear Regression", {}, None, None, None, error="Insufficient data for features"
+        )
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_ratio=0.2)
     model = LinearRegression()
     model.fit(X_train, y_train)

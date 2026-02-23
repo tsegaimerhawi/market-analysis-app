@@ -16,9 +16,7 @@ def build_transition_matrix(states_series, n_states=5):
                 matrix[i_int][j_int] += 1
 
     row_sums = matrix.sum(axis=1, keepdims=True)
-    return np.divide(
-        matrix, row_sums, out=np.full_like(matrix, np.nan), where=(row_sums != 0)
-    )
+    return np.divide(matrix, row_sums, out=np.full_like(matrix, np.nan), where=(row_sums != 0))
 
 
 def compute_steady_state(trans_matrix, iterations=200):
@@ -52,11 +50,11 @@ def compute_steady_state(trans_matrix, iterations=200):
 
     steady_state_vector = P_final[0, :]
 
-    if not (
-        np.isclose(np.sum(steady_state_vector), 1.0)
-        and np.all(steady_state_vector >= -1e-9)
-    ):
-        logger.warning("Warning: Steady-state vector from P_final[0,:] (sum=%s) is problematic. Checking other rows or returning NaN.", np.sum(steady_state_vector))
+    if not (np.isclose(np.sum(steady_state_vector), 1.0) and np.all(steady_state_vector >= -1e-9)):
+        logger.warning(
+            "Warning: Steady-state vector from P_final[0,:] (sum=%s) is problematic. Checking other rows or returning NaN.",
+            np.sum(steady_state_vector),
+        )
         for r_idx in range(1, n_states):
             row_vec = P_final[r_idx, :]
             if np.isclose(np.sum(row_vec), 1.0) and np.all(row_vec >= -1e-9):
@@ -78,9 +76,7 @@ def create_states(prices, n_states=5):
     percent_change_values = percent_change.values
     try:
         if len(np.unique(percent_change_values)) >= n_states:
-            states_cat = pd.qcut(
-                percent_change_values, q=n_states, labels=False, duplicates="drop"
-            )
+            states_cat = pd.qcut(percent_change_values, q=n_states, labels=False, duplicates="drop")
         else:
             states_cat = pd.cut(
                 percent_change_values,
@@ -90,7 +86,10 @@ def create_states(prices, n_states=5):
                 duplicates="drop",
             )
     except ValueError:
-        logger.warning("Warning: Could not discretize states using cut or qcut for %s states. Trying with fewer bins if possible or failing.", n_states)
+        logger.warning(
+            "Warning: Could not discretize states using cut or qcut for %s states. Trying with fewer bins if possible or failing.",
+            n_states,
+        )
         try:
             num_unique_pct = len(np.unique(percent_change_values))
             bins_to_try = min(n_states, num_unique_pct) if num_unique_pct > 0 else 1
@@ -135,10 +134,14 @@ def run_algorithm(data, csv_file_name):
 
     data = get_data(data, csv_file_name)
     if data is None:
-        return result_dict("Markov Chains", {}, None, None, None, error="Failed to load or filter data")
+        return result_dict(
+            "Markov Chains", {}, None, None, None, error="Failed to load or filter data"
+        )
     prices = data["Close"]
     if len(prices) < 10:
-        return result_dict("Markov Chains", {}, None, None, None, error="Not enough price data points")
+        return result_dict(
+            "Markov Chains", {}, None, None, None, error="Not enough price data points"
+        )
 
     states_series = create_states(prices, n_states=n_markov_states)
     if states_series.empty or len(states_series) < 2:
@@ -150,7 +153,9 @@ def run_algorithm(data, csv_file_name):
 
     current_state_idx = states_series.iloc[-1]
     if not (0 <= current_state_idx < len(state_labels)):
-        return result_dict("Markov Chains", {}, None, None, None, error="Current state index out of bounds")
+        return result_dict(
+            "Markov Chains", {}, None, None, None, error="Current state index out of bounds"
+        )
     current_state_label = state_labels[current_state_idx]
     current_date = states_series.index[-1].strftime("%Y-%m-%d")
 
@@ -162,9 +167,7 @@ def run_algorithm(data, csv_file_name):
             price_today = prices.loc[states_series.index[-1]]
             price_yesterday = prices.loc[prev_state_date]
             if price_yesterday != 0:
-                price_change_pct = (
-                    (price_today - price_yesterday) / price_yesterday * 100
-                )
+                price_change_pct = (price_today - price_yesterday) / price_yesterday * 100
             else:
                 price_change_pct = np.nan
         else:
@@ -220,9 +223,7 @@ def run_algorithm(data, csv_file_name):
         else:
             logger.debug("\nCould not compute a valid steady-state distribution.")
     else:
-        logger.debug(
-            "\nSkipping steady-state calculation due to invalid transition matrix."
-        )
+        logger.debug("\nSkipping steady-state calculation due to invalid transition matrix.")
 
     logger.debug("\n--- Analysis Complete ---")
 
@@ -234,7 +235,9 @@ def run_algorithm(data, csv_file_name):
     test_prices = prices.iloc[-test_size:]
     states_full = create_states(prices, n_states=n_markov_states)
     if states_full.empty or len(states_full) < 2:
-        return result_dict("Markov Chains", {}, None, None, None, error="Insufficient data for states")
+        return result_dict(
+            "Markov Chains", {}, None, None, None, error="Insufficient data for states"
+        )
     train_states = states_full[states_full.index.isin(train_prices.index)]
     trans = build_transition_matrix(train_states, n_states=n_markov_states)
     if np.all(np.isnan(trans)):
@@ -244,7 +247,10 @@ def run_algorithm(data, csv_file_name):
     for k in range(n_markov_states):
         rets = []
         for i in range(len(prices) - 1):
-            if prices.index[i] in train_states.index and int(train_states.loc[prices.index[i]]) == k:
+            if (
+                prices.index[i] in train_states.index
+                and int(train_states.loc[prices.index[i]]) == k
+            ):
                 if price_arr[i] != 0:
                     rets.append((price_arr[i + 1] / price_arr[i]) - 1.0)
         state_centers[k] = np.nanmean(rets) if rets else 0.0

@@ -1,4 +1,5 @@
 """Fetch stock data and company info using yfinance."""
+
 import pandas as pd
 from utils.logger import logger
 
@@ -33,7 +34,11 @@ def get_history(symbol, start_date=None, end_date=None):
         # Ensure required columns
         if "Close" not in df.columns:
             return None
-        return df[["Open", "High", "Low", "Close", "Volume"]].copy() if all(c in df.columns for c in ["Open", "High", "Low", "Volume"]) else df[["Close"]].copy()
+        return (
+            df[["Open", "High", "Low", "Close", "Volume"]].copy()
+            if all(c in df.columns for c in ["Open", "High", "Low", "Volume"])
+            else df[["Close"]].copy()
+        )
     except Exception as e:
         logger.exception("yfinance get_history failed for symbol %s: %s", symbol, e)
         return None
@@ -66,7 +71,10 @@ def get_info(symbol):
             elif isinstance(v, (list, tuple)):
                 out[k] = [x if isinstance(x, (str, int, float, bool)) else str(x) for x in v[:50]]
             elif isinstance(v, dict):
-                out[k] = {str(a): (b if isinstance(b, (str, int, float, bool)) else str(b)) for a, b in list(v.items())[:20]}
+                out[k] = {
+                    str(a): (b if isinstance(b, (str, int, float, bool)) else str(b))
+                    for a, b in list(v.items())[:20]
+                }
             else:
                 out[k] = str(v)
         return out
@@ -95,8 +103,12 @@ def get_quote(symbol):
             price = None
         else:
             # Prefer regularMarketPrice; fallback to previousClose or last close from history
-            price = info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose")
-        
+            price = (
+                info.get("regularMarketPrice")
+                or info.get("currentPrice")
+                or info.get("previousClose")
+            )
+
         if price is None:
             hist = ticker.history(period="5d")
             if hist is not None and not hist.empty and "Close" in hist.columns:
@@ -125,12 +137,14 @@ def search(query):
         return []
     try:
         import yfinance as yf
+
         # yfinance doesn't have a real search API; we can use ticker.info for a single symbol
         # For search, use pandas_datareader or a simple mapping. Alternatively use yf.Ticker(query).info to validate.
         ticker = yf.Ticker(query.upper())
         info = ticker.info
         if info and info.get("symbol"):
-            return [{"symbol": info.get("symbol", query.upper()), "name": info.get("shortName") or info.get("longName") or info.get("symbol", "")}]
+            name = info.get("shortName") or info.get("longName") or info.get("symbol", "")
+            return [{"symbol": info.get("symbol", query.upper()), "name": name}]
         return []
     except Exception:
         return []

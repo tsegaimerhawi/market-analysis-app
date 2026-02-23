@@ -7,9 +7,7 @@ log_dir.mkdir(exist_ok=True)
 log_file = log_dir / "app.log"
 
 # Formatter string
-log_format = (
-    "%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s"
-)
+log_format = "%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s"
 
 # Configure logger: INFO for console/file so third-party libs (e.g. yfinance) don't flood DEBUG
 logging.basicConfig(

@@ -2,6 +2,7 @@
 The Ensemble "Decider": gathers ML/DL and LLM signals, applies weighted decision matrix,
 outputs Buy/Sell/Hold with position_size. Includes hard guardrails (volatility, spread).
 """
+
 import os
 from typing import Callable, Optional
 
@@ -17,6 +18,7 @@ from agents.xgboost_analyst import XGBoostAnalyst
 
 try:
     from config import config
+
     WEIGHT_LSTM = float(os.environ.get("AGENT_WEIGHT_LSTM", 0.35))
     WEIGHT_XGBOOST = float(os.environ.get("AGENT_WEIGHT_XGBOOST", 0.15))
     WEIGHT_TECHNICAL = float(os.environ.get("AGENT_WEIGHT_TECHNICAL", 0.10))
@@ -30,6 +32,7 @@ except ImportError:
     WEIGHT_SENTIMENT = 0.30
     WEIGHT_MACRO = 0.10
     CONFIDENCE_FLOOR = 0.12
+
 
 def _risk_mode() -> str:
     return (os.environ.get("AGENT_RISK_MODE") or "balanced").strip().lower()
@@ -118,7 +121,12 @@ class TradeOrchestrator:
         If guardrail triggers (and not full_control), return Hold with guardrail_triggered=True.
         When full_control=True, no guardrails, no confidence floor, no dampening, no agreement rule; composite alone drives action.
         """
-        self._log(symbol, "start", f"Running ensemble for {symbol}" + (" (full control)" if full_control else ""), {})
+        self._log(
+            symbol,
+            "start",
+            f"Running ensemble for {symbol}" + (" (full control)" if full_control else ""),
+            {},
+        )
 
         # 1) Hard guardrails first (skipped when full_control)
         if not full_control:
@@ -133,32 +141,67 @@ class TradeOrchestrator:
                     confidence=0.0,
                     reason=reason,
                     guardrail_triggered=True,
-                    weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                    weights_used={
+                        "lstm": WEIGHT_LSTM,
+                        "xgboost": WEIGHT_XGBOOST,
+                        "technical": WEIGHT_TECHNICAL,
+                        "sentiment": WEIGHT_SENTIMENT,
+                        "macro": WEIGHT_MACRO,
+                    },
                 )
 
         # 2) Local ML/DL and technical signals (numerical)
         lstm_signal = self.lstm.predict(symbol, history_closes)
-        self._log(symbol, "lstm", f"LSTM confidence={lstm_signal.confidence_score:.3f}, delta={lstm_signal.predicted_price_delta:.4f}", lstm_signal.model_dump())
+        self._log(
+            symbol,
+            "lstm",
+            f"LSTM confidence={lstm_signal.confidence_score:.3f}, delta={lstm_signal.predicted_price_delta:.4f}",
+            lstm_signal.model_dump(),
+        )
 
         xgb_signal = self.xgb.predict(symbol, history_closes)
-        self._log(symbol, "xgboost", f"XGBoost confidence={xgb_signal.confidence_score:.3f}, delta={xgb_signal.predicted_price_delta:.4f}", xgb_signal.model_dump())
+        self._log(
+            symbol,
+            "xgboost",
+            f"XGBoost confidence={xgb_signal.confidence_score:.3f}, delta={xgb_signal.predicted_price_delta:.4f}",
+            xgb_signal.model_dump(),
+        )
 
         technical_signal = self.technical.predict(symbol, history_closes)
-        self._log(symbol, "technical", f"Technical (RSI/MACD/BB) confidence={technical_signal.confidence_score:.3f}", technical_signal.model_dump())
+        self._log(
+            symbol,
+            "technical",
+            f"Technical (RSI/MACD/BB) confidence={technical_signal.confidence_score:.3f}",
+            technical_signal.model_dump(),
+        )
 
         # 3) LLM agents (text -> structured)
         sentiment = self.llm.get_sentiment(headlines or [], symbol)
-        self._log(symbol, "sentiment", f"Sentiment polarity={sentiment.polarity:.3f}, confidence={sentiment.confidence:.2f}", sentiment.model_dump())
+        self._log(
+            symbol,
+            "sentiment",
+            f"Sentiment polarity={sentiment.polarity:.3f}, confidence={sentiment.confidence:.2f}",
+            sentiment.model_dump(),
+        )
 
         macro = self.llm.get_macro(macro_indicators or {}, symbol)
-        self._log(symbol, "macro", f"Macro stance={macro.stance:.3f}, confidence={macro.confidence:.2f}", macro.model_dump())
+        self._log(
+            symbol,
+            "macro",
+            f"Macro stance={macro.stance:.3f}, confidence={macro.confidence:.2f}",
+            macro.model_dump(),
+        )
 
         # 4) Weighted composite score (-1 to 1) with Regime Awareness
         w_lstm, w_xgb, w_tech = WEIGHT_LSTM, WEIGHT_XGBOOST, WEIGHT_TECHNICAL
-        
-        regime = technical_signal.metadata.get("regime", "ranging") if technical_signal.metadata else "ranging"
+
+        regime = (
+            technical_signal.metadata.get("regime", "ranging")
+            if technical_signal.metadata
+            else "ranging"
+        )
         regime_msg = f"Regime: {regime}"
-        
+
         if regime == "trending":
             # In trending markets, let the ML models (Trend followers) lead
             w_tech = WEIGHT_TECHNICAL * 0.8  # slightly less technical
@@ -196,21 +239,31 @@ class TradeOrchestrator:
 
         # 4b) Signal agreement: count how many of 5 signals agree in direction
         signal_agree_thresh = 0.05
-        sig_bull = sum(1 for s in [
-            lstm_signal.confidence_score,
-            xgb_signal.confidence_score,
-            technical_signal.confidence_score,
-            sentiment.polarity * sentiment.confidence,
-            macro.stance * macro.confidence,
-        ] if s > signal_agree_thresh)
-        sig_bear = sum(1 for s in [
-            lstm_signal.confidence_score,
-            xgb_signal.confidence_score,
-            technical_signal.confidence_score,
-            sentiment.polarity * sentiment.confidence,
-            macro.stance * macro.confidence,
-        ] if s < -signal_agree_thresh)
-        agreement = "bull" if sig_bull > sig_bear else ("bear" if sig_bear > sig_bull else "neutral")
+        sig_bull = sum(
+            1
+            for s in [
+                lstm_signal.confidence_score,
+                xgb_signal.confidence_score,
+                technical_signal.confidence_score,
+                sentiment.polarity * sentiment.confidence,
+                macro.stance * macro.confidence,
+            ]
+            if s > signal_agree_thresh
+        )
+        sig_bear = sum(
+            1
+            for s in [
+                lstm_signal.confidence_score,
+                xgb_signal.confidence_score,
+                technical_signal.confidence_score,
+                sentiment.polarity * sentiment.confidence,
+                macro.stance * macro.confidence,
+            ]
+            if s < -signal_agree_thresh
+        )
+        agreement = (
+            "bull" if sig_bull > sig_bear else ("bear" if sig_bear > sig_bull else "neutral")
+        )
         agree_count = max(sig_bull, sig_bear) if agreement != "neutral" else 0
 
         # 4c) Short-term trend alignment
@@ -225,15 +278,26 @@ class TradeOrchestrator:
                 elif composite <= -0.1 and trend_pct > 0.03:
                     trend_align = max(0.3, 1.0 - trend_pct)
 
-        self._log(symbol, "ensemble", f"{regime_msg} | Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "regime": regime})
+        self._log(
+            symbol,
+            "ensemble",
+            f"{regime_msg} | Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}",
+            {"composite": composite, "regime": regime},
+        )
 
         # 4d) Full control path
         FULL_CONTROL_BUY_THRESHOLD = 0.04
         FULL_CONTROL_SELL_THRESHOLD = -0.04
         FULL_CONTROL_MAX_POSITION_CAP = 0.5
         if full_control:
-            action = "Buy" if composite >= FULL_CONTROL_BUY_THRESHOLD else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
-            raw_size = 0.5 * abs(composite) * (0.3 + 0.7 * avg_confidence) if action != "Hold" else 0.0
+            action = (
+                "Buy"
+                if composite >= FULL_CONTROL_BUY_THRESHOLD
+                else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
+            )
+            raw_size = (
+                0.5 * abs(composite) * (0.3 + 0.7 * avg_confidence) if action != "Hold" else 0.0
+            )
             position_size = max(0.0, min(FULL_CONTROL_MAX_POSITION_CAP, raw_size))
             reason = f"[Full control] {regime} | LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
             return TradeDecision(
@@ -242,19 +306,36 @@ class TradeOrchestrator:
                 confidence=avg_confidence,
                 reason=reason,
                 guardrail_triggered=False,
-                weights_used={"lstm": w_lstm, "xgboost": w_xgb, "technical": w_tech, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                weights_used={
+                    "lstm": w_lstm,
+                    "xgboost": w_xgb,
+                    "technical": w_tech,
+                    "sentiment": WEIGHT_SENTIMENT,
+                    "macro": WEIGHT_MACRO,
+                },
             )
 
         # 5) Confidence floor
         if avg_confidence < CONFIDENCE_FLOOR:
-            self._log(symbol, "filter", f"Hold: avg_confidence below floor {CONFIDENCE_FLOOR}", {"avg_confidence": avg_confidence})
+            self._log(
+                symbol,
+                "filter",
+                f"Hold: avg_confidence below floor {CONFIDENCE_FLOOR}",
+                {"avg_confidence": avg_confidence},
+            )
             return TradeDecision(
                 action="Hold",
                 position_size=0.0,
                 confidence=avg_confidence,
                 reason=f"Hold: low conviction (conf={avg_confidence:.2f}). {regime} | LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f}",
                 guardrail_triggered=False,
-                weights_used={"lstm": w_lstm, "xgboost": w_xgb, "technical": w_tech, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                weights_used={
+                    "lstm": w_lstm,
+                    "xgboost": w_xgb,
+                    "technical": w_tech,
+                    "sentiment": WEIGHT_SENTIMENT,
+                    "macro": WEIGHT_MACRO,
+                },
             )
 
         # 6) Macro/sentiment veto
@@ -263,11 +344,21 @@ class TradeOrchestrator:
         if composite >= 0.1:
             if macro_effective < -0.55 or sent_effective < -0.55:
                 composite = composite * 0.5
-                self._log(symbol, "filter", "Buy dampened: macro or sentiment strongly bearish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+                self._log(
+                    symbol,
+                    "filter",
+                    "Buy dampened: macro or sentiment strongly bearish",
+                    {"macro_eff": macro_effective, "sent_eff": sent_effective},
+                )
         elif composite <= -0.1:
             if macro_effective > 0.55 and sent_effective > 0.55:
                 composite = composite * 0.5
-                self._log(symbol, "filter", "Sell dampened: macro and sentiment strongly bullish", {"macro_eff": macro_effective, "sent_eff": sent_effective})
+                self._log(
+                    symbol,
+                    "filter",
+                    "Sell dampened: macro and sentiment strongly bullish",
+                    {"macro_eff": macro_effective, "sent_eff": sent_effective},
+                )
 
         # 7) Map score to action; require at least 1 agreeing signal (so LLM bearish + one bullish price signal can still buy)
         mode = _risk_mode()
@@ -302,7 +393,10 @@ class TradeOrchestrator:
                 kelly_fraction=kelly_fraction,
                 max_position_cap=max_cap,
                 volatility_annual=volatility_annual,
-            ) * size_mult if action != "Hold" else 0.0
+            )
+            * size_mult
+            if action != "Hold"
+            else 0.0
         )
         position_size = max(0.0, min(max_cap, position_size))
         # Ensure minimum position size when buying so we don't skip due to rounding
@@ -313,7 +407,11 @@ class TradeOrchestrator:
 
         logger.info(
             "Decision %s: %s (composite=%.2f, agree=%s, size=%.2f)",
-            symbol, action, composite, agree_count, position_size,
+            symbol,
+            action,
+            composite,
+            agree_count,
+            position_size,
         )
         return TradeDecision(
             action=action,
@@ -321,5 +419,11 @@ class TradeOrchestrator:
             confidence=avg_confidence,
             reason=reason,
             guardrail_triggered=False,
-            weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+            weights_used={
+                "lstm": WEIGHT_LSTM,
+                "xgboost": WEIGHT_XGBOOST,
+                "technical": WEIGHT_TECHNICAL,
+                "sentiment": WEIGHT_SENTIMENT,
+                "macro": WEIGHT_MACRO,
+            },
         )

@@ -1,4 +1,5 @@
 """Shared helpers for stock prediction algorithms."""
+
 import os
 
 import numpy as np
@@ -36,6 +37,7 @@ def get_data(data_config, source):
         # Treat as symbol: fetch from yfinance
         try:
             from services.company_service import get_history
+
             df = get_history(source, start_date, end_date)
         except Exception:
             df = None
@@ -70,8 +72,17 @@ def compute_metrics(actual, predicted):
     # Direction: up/down
     dir_actual = np.diff(a) > 0
     dir_pred = np.diff(p) > 0
-    direction_accuracy = float(np.mean(dir_actual == dir_pred) * 100) if len(dir_actual) > 0 else None
-    return {"mae": round(mae, 4), "rmse": round(rmse, 4), "mape": round(mape, 2) if mape is not None else None, "direction_accuracy": round(direction_accuracy, 2) if direction_accuracy is not None else None}
+    direction_accuracy = (
+        float(np.mean(dir_actual == dir_pred) * 100) if len(dir_actual) > 0 else None
+    )
+    return {
+        "mae": round(mae, 4),
+        "rmse": round(rmse, 4),
+        "mape": round(mape, 2) if mape is not None else None,
+        "direction_accuracy": round(direction_accuracy, 2)
+        if direction_accuracy is not None
+        else None,
+    }
 
 
 def result_dict(name, metrics, dates, actuals, predictions, error=None):
@@ -80,8 +91,14 @@ def result_dict(name, metrics, dates, actuals, predictions, error=None):
         "name": name,
         "metrics": metrics,
         "dates": [str(d) for d in dates] if dates is not None else [],
-        "actual": (actuals.tolist() if hasattr(actuals, "tolist") else list(actuals)) if actuals is not None else [],
-        "predictions": (predictions.tolist() if hasattr(predictions, "tolist") else list(predictions)) if predictions is not None else [],
+        "actual": (actuals.tolist() if hasattr(actuals, "tolist") else list(actuals))
+        if actuals is not None
+        else [],
+        "predictions": (
+            predictions.tolist() if hasattr(predictions, "tolist") else list(predictions)
+        )
+        if predictions is not None
+        else [],
     }
     if error:
         out["error"] = error

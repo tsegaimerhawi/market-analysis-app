@@ -3,6 +3,7 @@ Handle Telegram chat commands: buy/sell by symbol or company name.
 Supports: buy AAPL 10, sell GME all, buy google stock with all cash balance.
 Only processes messages from the chat configured in TELEGRAM_CHAT_ID.
 """
+
 from utils.logger import logger
 
 from services.telegram_notify import get_config, get_updates, send_message
@@ -12,17 +13,55 @@ _last_update_id = 0
 
 # Common company name -> ticker for "buy google with all cash" style commands
 _COMMON_NAMES = {
-    "google": "GOOGL", "alphabet": "GOOGL", "apple": "AAPL", "microsoft": "MSFT",
-    "amazon": "AMZN", "tesla": "TSLA", "meta": "META", "nvidia": "NVDA",
-    "netflix": "NFLX", "disney": "DIS", "walmart": "WMT", "jpmorgan": "JPM", "jpm": "JPM",
-    "visa": "V", "mastercard": "MA", "berkshire": "BRK.B", "coca cola": "KO", "pepsi": "PEP",
-    "nike": "NKE", "adobe": "ADBE", "salesforce": "CRM", "oracle": "ORCL", "intel": "INTC",
-    "amd": "AMD", "qualcomm": "QCOM", "ibm": "IBM", "exxon": "XOM", "chevron": "CVX",
-    "costco": "COST", "home depot": "HD", "procter": "PG", "johnson": "JNJ",
-    "pfizer": "PFE", "merck": "MRK", "abbvie": "ABBV", "united health": "UNH",
-    "boeing": "BA", "lockheed": "LMT", "crowdstrike": "CRWD", "snowflake": "SNOW",
-    "palantir": "PLTR", "coinbase": "COIN", "robinhood": "HOOD", "gamestop": "GME",
-    "amc": "AMC", "uber": "UBER", "lyft": "LYFT", "airbnb": "ABNB", "spotify": "SPOT",
+    "google": "GOOGL",
+    "alphabet": "GOOGL",
+    "apple": "AAPL",
+    "microsoft": "MSFT",
+    "amazon": "AMZN",
+    "tesla": "TSLA",
+    "meta": "META",
+    "nvidia": "NVDA",
+    "netflix": "NFLX",
+    "disney": "DIS",
+    "walmart": "WMT",
+    "jpmorgan": "JPM",
+    "jpm": "JPM",
+    "visa": "V",
+    "mastercard": "MA",
+    "berkshire": "BRK.B",
+    "coca cola": "KO",
+    "pepsi": "PEP",
+    "nike": "NKE",
+    "adobe": "ADBE",
+    "salesforce": "CRM",
+    "oracle": "ORCL",
+    "intel": "INTC",
+    "amd": "AMD",
+    "qualcomm": "QCOM",
+    "ibm": "IBM",
+    "exxon": "XOM",
+    "chevron": "CVX",
+    "costco": "COST",
+    "home depot": "HD",
+    "procter": "PG",
+    "johnson": "JNJ",
+    "pfizer": "PFE",
+    "merck": "MRK",
+    "abbvie": "ABBV",
+    "united health": "UNH",
+    "boeing": "BA",
+    "lockheed": "LMT",
+    "crowdstrike": "CRWD",
+    "snowflake": "SNOW",
+    "palantir": "PLTR",
+    "coinbase": "COIN",
+    "robinhood": "HOOD",
+    "gamestop": "GME",
+    "amc": "AMC",
+    "uber": "UBER",
+    "lyft": "LYFT",
+    "airbnb": "ABNB",
+    "spotify": "SPOT",
 }
 
 
@@ -36,12 +75,14 @@ def _resolve_symbol(phrase):
     # Already looks like a ticker (1–5 letters)
     if phrase.isalpha() and 1 <= len(phrase) <= 5:
         from services.company_service import get_quote
+
         if get_quote(phrase.upper()):
             return phrase.upper()
     if phrase in _COMMON_NAMES:
         return _COMMON_NAMES[phrase]
     # Try as symbol one more time (e.g. BRK.B)
     from services.company_service import get_quote
+
     cand = phrase.upper().replace(" ", ".")
     if get_quote(cand):
         return cand
@@ -75,7 +116,8 @@ def _parse_command(text):
     Parse a message into a command or None.
     Returns ("buy"|"sell", symbol, qty_or_all) or None.
     - buy AAPL, buy AAPL 10, /buy AAPL 10 -> ("buy", "AAPL", 10) or ("buy", "AAPL", 1)
-    - sell GME, sell GME all, sell GME 5, sell all GME -> ("sell", "GME", "all") or ("sell", "GME", 5)
+    - sell GME, sell GME all, sell GME 5, sell all GME
+      -> ("sell", "GME", "all") or ("sell", "GME", 5)
     """
     if not text or not isinstance(text, str):
         return None
@@ -107,7 +149,7 @@ def _parse_command(text):
             lb = first.index("[")
             rb = first.index("]")
             symbol = first[:lb].strip().upper()
-            qty_str = first[lb + 1:rb].strip()
+            qty_str = first[lb + 1 : rb].strip()
             if verb == "buy" and symbol and qty_str:
                 qty = float(qty_str)
                 if qty <= 0:
@@ -156,6 +198,7 @@ def _run_buy(symbol, quantity):
     from db import execute_buy
 
     from services.company_service import get_quote
+
     quote = get_quote(symbol)
     if quote is None:
         return False, f"Could not get price for {symbol}"
@@ -170,6 +213,7 @@ def _run_sell(symbol, qty_or_all):
     from db import execute_sell, get_position
 
     from services.company_service import get_quote
+
     pos = get_position(symbol)
     if not pos:
         return False, f"No position in {symbol}"
@@ -197,6 +241,7 @@ def _run_buy_all_cash(symbol):
     from db import execute_buy, get_cash_balance
 
     from services.company_service import get_quote
+
     cash = get_cash_balance()
     if cash is None or cash <= 0:
         return False, "No cash balance"
@@ -212,7 +257,10 @@ def _run_buy_all_cash(symbol):
     ok, result, new_cash = execute_buy(symbol, qty, price)
     if not ok:
         return False, str(result)
-    return True, f"Bought {qty} {symbol} @ ${price:.2f} (all cash). Spent ${cash - new_cash:,.2f}. Remaining cash: ${new_cash:,.2f}"
+    return True, (
+        f"Bought {qty} {symbol} @ ${price:.2f} (all cash). "
+        f"Spent ${cash - new_cash:,.2f}. Remaining cash: ${new_cash:,.2f}"
+    )
 
 
 def process_updates():
@@ -225,7 +273,8 @@ def process_updates():
     if not token or not allowed_chat_id:
         return
     try:
-        data = get_updates(token, offset=_last_update_id + 1 if _last_update_id else None, timeout=8)
+        offset = _last_update_id + 1 if _last_update_id else None
+        data = get_updates(token, offset=offset, timeout=8)
     except Exception as e:
         logger.debug("Telegram getUpdates: %s", e)
         return
@@ -259,7 +308,11 @@ def process_updates():
             _, company_phrase = buy_all_cash
             symbol = _resolve_symbol(company_phrase)
             if not symbol:
-                send_message(f"❌ Unknown company: \"{company_phrase}\". Use a symbol (e.g. GOOGL) or a known company name.", chat_id=chat_id)
+                msg = (
+                    f'❌ Unknown company: "{company_phrase}". '
+                    "Use a symbol (e.g. GOOGL) or a known company name."
+                )
+                send_message(msg, chat_id=chat_id)
             else:
                 try:
                     success, reply = _run_buy_all_cash(symbol)
@@ -272,12 +325,13 @@ def process_updates():
         cmd = _parse_command(text)
         if not cmd:
             # Reply so user knows we saw the message and show correct format
-            send_message(
-                "❓ Use: buy SYMBOL [qty] or sell SYMBOL [qty|all] (qty can be fractional, e.g. 0.01)\n"
+            msg = (
+                "❓ Use: buy SYMBOL [qty] or sell SYMBOL [qty|all] "
+                "(qty can be fractional, e.g. 0.01)\n"
                 "Or: buy GOOGL[0.01] or buy X with all cash. Type /help for full list.\n"
-                "Type /help for full list.",
-                chat_id=chat_id,
+                "Type /help for full list."
             )
+            send_message(msg, chat_id=chat_id)
             continue
         action, symbol, qty_or_all = cmd
         # Resolve company name to symbol (e.g. "google" -> GOOGL) for normal buy/sell too

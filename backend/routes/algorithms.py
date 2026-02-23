@@ -7,16 +7,14 @@ from flask import Blueprint, jsonify, request
 from utils.imports import UPLOAD_FOLDER
 from utils.logger import logger
 
-algorithms_bp = Blueprint('algorithms', __name__)
+algorithms_bp = Blueprint("algorithms", __name__)
+
 
 @algorithms_bp.route("/algorithms", methods=["GET"])
 def list_algorithms():
     """Return available algorithm ids and display names."""
-    return jsonify({
-        "algorithms": [
-            {"id": k, "name": v[0]} for k, v in ALGORITHMS.items()
-        ]
-    })
+    return jsonify({"algorithms": [{"id": k, "name": v[0]} for k, v in ALGORITHMS.items()]})
+
 
 @algorithms_bp.route("/compare", methods=["POST"])
 def compare_algorithms():
@@ -25,7 +23,9 @@ def compare_algorithms():
     end_date = request.form.get("endDate") or None
     algorithms_param = request.form.get("algorithms")
     try:
-        algorithm_ids = json.loads(algorithms_param) if algorithms_param else list(ALGORITHMS.keys())
+        algorithm_ids = (
+            json.loads(algorithms_param) if algorithms_param else list(ALGORITHMS.keys())
+        )
     except json.JSONDecodeError:
         algorithm_ids = list(ALGORITHMS.keys())
 
@@ -58,16 +58,19 @@ def compare_algorithms():
             results.append(result)
         except Exception as e:
             logger.exception("Algorithm %s failed", algo_id)
-            results.append({
-                "name": name,
-                "error": str(e),
-                "metrics": {},
-                "dates": [],
-                "actual": [],
-                "predictions": [],
-            })
+            results.append(
+                {
+                    "name": name,
+                    "error": str(e),
+                    "metrics": {},
+                    "dates": [],
+                    "actual": [],
+                    "predictions": [],
+                }
+            )
 
     return jsonify({"results": results})
+
 
 @algorithms_bp.route("/predict-future", methods=["POST"])
 def predict_future():
@@ -76,11 +79,17 @@ def predict_future():
     symbol = (data.get("symbol") or request.form.get("symbol") or "").strip().upper()
     start_date = data.get("startDate") or request.form.get("startDate") or None
     end_date = data.get("endDate") or request.form.get("endDate") or None
-    prediction_length = int(data.get("prediction_length") or request.form.get("prediction_length") or 7)
+    prediction_length = int(
+        data.get("prediction_length") or request.form.get("prediction_length") or 7
+    )
     algorithms_param = data.get("algorithms") or request.form.get("algorithms")
-    
+
     try:
-        algorithm_ids = json.loads(algorithms_param) if isinstance(algorithms_param, str) else (algorithms_param or ["linear_regression", "random_forest", "xgboost"])
+        algorithm_ids = (
+            json.loads(algorithms_param)
+            if isinstance(algorithms_param, str)
+            else (algorithms_param or ["linear_regression", "random_forest", "xgboost"])
+        )
     except json.JSONDecodeError:
         algorithm_ids = ["linear_regression", "random_forest", "xgboost"]
 
@@ -89,7 +98,13 @@ def predict_future():
 
     data_config = {"startDate": start_date, "endDate": end_date}
     try:
-        result = run_future_prediction(data_config, symbol, steps=prediction_length, algorithms=algorithm_ids, registry=ALGORITHMS)
+        result = run_future_prediction(
+            data_config,
+            symbol,
+            steps=prediction_length,
+            algorithms=algorithm_ids,
+            registry=ALGORITHMS,
+        )
         if "error" in result:
             return jsonify(result), 400
         return jsonify(result)

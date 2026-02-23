@@ -3,13 +3,15 @@ from typing import Any
 from db import add_to_watchlist, get_watchlist, remove_from_watchlist
 from flask import Blueprint, jsonify, request
 
-watchlist_bp = Blueprint('watchlist', __name__)
+watchlist_bp = Blueprint("watchlist", __name__)
+
 
 @watchlist_bp.route("/", methods=["GET"])
 def api_watchlist() -> Any:
     """Return the user's watchlist (all saved companies)."""
     items = get_watchlist()
     return jsonify({"watchlist": items})
+
 
 @watchlist_bp.route("/", methods=["POST"])
 def api_watchlist_add() -> Any:
@@ -23,6 +25,7 @@ def api_watchlist_add() -> Any:
     if item is None:
         return jsonify({"error": "Symbol already in watchlist or invalid"}), 409
     return jsonify({"watchlist": get_watchlist(), "added": item})
+
 
 @watchlist_bp.route("/<symbol_or_id>", methods=["DELETE"])
 def api_watchlist_remove(symbol_or_id: str) -> Any:

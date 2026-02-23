@@ -60,9 +60,7 @@ def load_data(csv_name):
                 df[col] = pd.to_numeric(df[col], errors="coerce").ffill()
 
         if df.empty:
-            print(
-                f"Warning: DataFrame for '{csv_name}' became empty after preprocessing."
-            )
+            print(f"Warning: DataFrame for '{csv_name}' became empty after preprocessing.")
             return None
 
         print(f"Successfully loaded and preprocessed ({len(df)} rows).")

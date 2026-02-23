@@ -2,13 +2,16 @@
 Fetch macro indicators (rates, CPI, etc.) when MACRO_API_KEY or similar is set.
 Otherwise return stub description for Macro LLM agent.
 """
+
 import os
 from typing import Any, Dict
 
 from utils.logger import logger
 
 # Optional: set MACRO_API_KEY or use a free endpoint (e.g. FRED, Alpha Vantage) for rates/CPI
-MACRO_API_KEY = (os.environ.get("MACRO_API_KEY") or os.environ.get("ALPHA_VANTAGE_API_KEY") or "").strip()
+MACRO_API_KEY = (
+    os.environ.get("MACRO_API_KEY") or os.environ.get("ALPHA_VANTAGE_API_KEY") or ""
+).strip()
 
 
 def get_macro_indicators(as_of_date=None) -> Dict[str, Any]:
@@ -17,6 +20,7 @@ def get_macro_indicators(as_of_date=None) -> Dict[str, Any]:
     If no API key, returns stub. Keys: description (str), optional rates, cpi, etc.
     """
     from datetime import datetime
+
     is_historical = False
     if as_of_date is not None:
         if isinstance(as_of_date, str):
@@ -26,12 +30,17 @@ def get_macro_indicators(as_of_date=None) -> Dict[str, Any]:
 
     if not MACRO_API_KEY or is_historical:
         # Avoid look-ahead bias: if we are in the past, don't return 'latest' real-time data
-        msg = "Macro indicators stable for this period." if is_historical else "CPI and rates stable; no major macro update. Set MACRO_API_KEY for real data."
+        msg = (
+            "Macro indicators stable for this period."
+            if is_historical
+            else "CPI and rates stable; no major macro update. Set MACRO_API_KEY for real data."
+        )
         return {"description": msg}
-    
+
     try:
         # Example: Alpha Vantage has macroeconomic data; adapt URL/params as needed
         import httpx
+
         url = "https://www.alphavantage.co/query"
         params = {"function": "FEDERAL_FUNDS_RATE", "apikey": MACRO_API_KEY, "limit": "1"}
         with httpx.Client(timeout=8.0) as client:
@@ -43,7 +52,8 @@ def get_macro_indicators(as_of_date=None) -> Dict[str, Any]:
         if rates:
             latest = rates[0] if isinstance(rates[0], dict) else {}
             value = latest.get("value", "N/A")
-            return {"description": f"Fed funds rate latest: {value}. CPI and employment to be added."}
+            msg = f"Fed funds rate latest: {value}. CPI and employment to be added."
+            return {"description": msg}
         return {"description": "Macro data unavailable."}
     except Exception as e:
         logger.debug("macro_fetcher: %s", e)

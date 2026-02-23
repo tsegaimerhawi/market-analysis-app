@@ -2,6 +2,7 @@
 Fetch real news headlines for a symbol when NEWS_API_KEY (NewsAPI.org) is set.
 Otherwise return stub for Sentiment agent.
 """
+
 import os
 from typing import List
 
@@ -24,16 +25,21 @@ def get_headlines(symbol: str, max_items: int = 15, as_of_date=None) -> List[str
         from datetime import datetime, timedelta
 
         import httpx
-        
+
         # Use as_of_date (if provided) to avoid look-ahead bias during backtests
         if as_of_date is None:
             to_date = datetime.utcnow()
         else:
-            to_date = as_of_date if isinstance(as_of_date, datetime) else datetime.fromisoformat(str(as_of_date).replace("Z", ""))
-            
+            as_of_str = str(as_of_date).replace("Z", "")
+            to_date = (
+                as_of_date
+                if isinstance(as_of_date, datetime)
+                else datetime.fromisoformat(as_of_str)
+            )
+
         from_date = (to_date - timedelta(days=2)).strftime("%Y-%m-%d")
         to_date_str = to_date.strftime("%Y-%m-%d")
-        
+
         params = {
             "q": symbol,
             "from": from_date,

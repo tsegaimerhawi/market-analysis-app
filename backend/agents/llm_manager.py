@@ -2,6 +2,7 @@
 OpenRouter LLM layer. Two agents: Sentiment (news/social) and Macro (economic indicators).
 Uses OpenAI client with base_url for OpenRouter; structured JSON output for valid Pydantic parsing.
 """
+
 import asyncio
 import json
 import os
@@ -12,8 +13,11 @@ from utils.logger import logger
 from agents.models import MacroOutput, SentimentOutput
 
 # OpenRouter API key: OPEN_ROUTER_TRADER_API_KEY or OPEN_ROUTER_API_KEY
-OPENROUTER_API_KEY = os.environ.get("OPEN_ROUTER_TRADER_API_KEY") or os.environ.get("OPEN_ROUTER_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPEN_ROUTER_TRADER_API_KEY") or os.environ.get(
+    "OPEN_ROUTER_API_KEY"
+)
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+
 
 def _risk_mode() -> str:
     return (os.environ.get("AGENT_RISK_MODE") or "balanced").strip().lower()
@@ -27,7 +31,9 @@ def _get_client():
         import httpx
         from openai import OpenAI
     except ImportError as e:
-        raise ImportError("openai and httpx required for LLM agents. pip install openai httpx") from e
+        raise ImportError(
+            "openai and httpx required for LLM agents. pip install openai httpx"
+        ) from e
     # Pass our own client so OpenAI doesn't inject 'proxies' (breaks on httpx 0.28+)
     http_client = httpx.Client()
     return OpenAI(

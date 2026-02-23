@@ -1,4 +1,5 @@
 """Fetch articles from news sources (RSS feeds)."""
+
 from datetime import datetime
 
 from utils.logger import logger
@@ -8,6 +9,7 @@ def get_newspapers():
     """Load list of newspapers from data file."""
     import json
     import os
+
     path = os.path.join(os.path.dirname(__file__), "..", "data", "newspapers.json")
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -43,25 +45,32 @@ def scrape_articles(newspaper_id, start_date=None, end_date=None):
             if hasattr(entry, "published_parsed") and entry.published_parsed:
                 try:
                     from time import mktime
+
                     pub = datetime.fromtimestamp(mktime(entry.published_parsed))
                 except Exception:
                     pass
             if not pub and getattr(entry, "published", None):
                 try:
-                    pub = datetime.fromisoformat(entry.published.replace("Z", "+00:00")).replace(tzinfo=None)
+                    pub = datetime.fromisoformat(entry.published.replace("Z", "+00:00")).replace(
+                        tzinfo=None
+                    )
                 except Exception:
                     pub = None
             if start_date and pub and pub.date() < datetime.strptime(start_date, "%Y-%m-%d").date():
                 continue
             if end_date and pub and pub.date() > datetime.strptime(end_date, "%Y-%m-%d").date():
                 continue
-            articles.append({
-                "title": getattr(entry, "title", "") or "",
-                "link": getattr(entry, "link", "") or "",
-                "published": pub.isoformat() if pub else None,
-                "summary": (getattr(entry, "summary", "") or getattr(entry, "description", "") or "")[:500],
-                "source": source.get("name", newspaper_id),
-            })
+            articles.append(
+                {
+                    "title": getattr(entry, "title", "") or "",
+                    "link": getattr(entry, "link", "") or "",
+                    "published": pub.isoformat() if pub else None,
+                    "summary": (
+                        getattr(entry, "summary", "") or getattr(entry, "description", "") or ""
+                    )[:500],
+                    "source": source.get("name", newspaper_id),
+                }
+            )
         return articles
     except Exception as e:
         logger.exception("scrape_articles failed: %s", e)

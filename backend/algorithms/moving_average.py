@@ -1,4 +1,5 @@
 """Moving Average (double SMA) for stock price prediction."""
+
 import numpy as np
 import pandas as pd
 
@@ -8,7 +9,9 @@ from algorithms.base import compute_metrics, get_data, result_dict
 def run_algorithm(data_config, source):
     df = get_data(data_config, source)
     if df is None or len(df) < 20:
-        return result_dict("Moving Average", {}, None, None, None, error="Need at least 20 observations")
+        return result_dict(
+            "Moving Average", {}, None, None, None, error="Need at least 20 observations"
+        )
     series = df["Close"].astype(float)
     n = len(series)
     test_size = max(5, int(n * 0.2))

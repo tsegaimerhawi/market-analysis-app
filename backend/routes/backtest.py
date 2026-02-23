@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from utils.logger import logger
 
-backtest_bp = Blueprint('backtest', __name__)
+backtest_bp = Blueprint("backtest", __name__)
+
 
 @backtest_bp.route("/", methods=["GET"])
 def api_backtest():
@@ -16,6 +17,7 @@ def api_backtest():
     full_control = request.args.get("full_control", "0") == "1"
     try:
         from backtest_runner import run_backtest
+
         result = run_backtest(symbol, days=days, full_control=full_control)
         if "error" in result:
             return jsonify(result), 400

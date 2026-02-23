@@ -1,4 +1,5 @@
 """ARIMA for stock price prediction."""
+
 import numpy as np
 
 from algorithms.base import compute_metrics, get_data, result_dict
@@ -21,11 +22,11 @@ def run_algorithm(data_config, source):
         model = ARIMA(train, order=(2, 1, 2))
         fit = model.fit()
         preds = fit.forecast(steps=len(test))
-        if hasattr(preds, 'values'):
+        if hasattr(preds, "values"):
             preds = preds.values
         preds = np.asarray(preds)
         if len(preds) > len(test):
-            preds = preds[:len(test)]
+            preds = preds[: len(test)]
         elif len(preds) < len(test):
             preds = np.resize(preds, len(test))
         metrics = compute_metrics(test.values, preds)

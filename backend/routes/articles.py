@@ -5,13 +5,15 @@ from flask import Blueprint, jsonify, request
 from services.article_service import get_newspapers, scrape_articles
 from utils.logger import logger
 
-articles_bp = Blueprint('articles', __name__)
+articles_bp = Blueprint("articles", __name__)
+
 
 @articles_bp.route("/newspapers", methods=["GET"])
 def api_newspapers():
     """Return list of newspapers."""
     papers = get_newspapers()
     return jsonify({"newspapers": [{"id": p["id"], "name": p["name"]} for p in papers]})
+
 
 @articles_bp.route("/scrape-articles", methods=["POST"])
 def api_scrape_articles():
@@ -24,6 +26,7 @@ def api_scrape_articles():
         return jsonify({"error": "newspaper is required", "articles": []}), 400
     articles = scrape_articles(newspaper, start_date, end_date)
     return jsonify({"articles": articles})
+
 
 @articles_bp.route("/companies", methods=["GET"])
 def api_companies_list():

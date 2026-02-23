@@ -1,4 +1,5 @@
 """Simple LSTM for stock price prediction."""
+
 import numpy as np
 
 from algorithms.base import compute_metrics, get_data, result_dict
@@ -32,9 +33,12 @@ def train_test_split_seq(X, y, idx, test_ratio=TEST_RATIO):
     test_size = max(1, int(n * test_ratio))
     train_size = n - test_size
     return (
-        X[:train_size], X[train_size:],
-        y[:train_size], y[train_size:],
-        idx[:train_size], idx[train_size:],
+        X[:train_size],
+        X[train_size:],
+        y[:train_size],
+        y[train_size:],
+        idx[:train_size],
+        idx[train_size:],
     )
 
 
@@ -42,11 +46,14 @@ def _get_keras_model(seq_len, units=UNITS):
     """Build and return compiled Keras LSTM model."""
     from tensorflow import keras
     from tensorflow.keras import layers
-    model = keras.Sequential([
-        layers.Input(shape=(seq_len, 1)),
-        layers.LSTM(units, activation="tanh"),
-        layers.Dense(1),
-    ])
+
+    model = keras.Sequential(
+        [
+            layers.Input(shape=(seq_len, 1)),
+            layers.LSTM(units, activation="tanh"),
+            layers.Dense(1),
+        ]
+    )
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3), loss="mse", metrics=["mae"])
     return model
 
@@ -73,20 +80,31 @@ def run_algorithm(data_config, source):
         from tensorflow import keras
     except ImportError:
         return result_dict(
-            "LSTM", {}, None, None, None,
-            error="LSTM requires TensorFlow. Install with: pip install tensorflow"
+            "LSTM",
+            {},
+            None,
+            None,
+            None,
+            error="LSTM requires TensorFlow. Install with: pip install tensorflow",
         )
 
     series = df["Close"]
     min_val = float(series.min())
     max_val = float(series.max())
     range_val = max_val - min_val if max_val > min_val else 1.0
-    
+
     scaled_series = (series - min_val) / range_val
-    
+
     X, y, idx = build_sequences(scaled_series, SEQ_LEN)
     if X is None:
-        return result_dict("LSTM", {}, None, None, None, error="Insufficient data for sequences (need at least {} points)".format(SEQ_LEN + 10))
+        return result_dict(
+            "LSTM",
+            {},
+            None,
+            None,
+            None,
+            error="Insufficient data for sequences (need at least {} points)".format(SEQ_LEN + 10),
+        )
 
     X_train, X_test, y_train, y_test, _, idx_test = train_test_split_seq(X, y, idx)
 
@@ -96,6 +114,6 @@ def run_algorithm(data_config, source):
     preds_scaled = model.predict(X_test, verbose=0).flatten()
     preds = preds_scaled * range_val + min_val
     y_test_unscaled = y_test * range_val + min_val
-    
+
     metrics = compute_metrics(y_test_unscaled, preds)
     return result_dict("LSTM", metrics, idx_test, y_test_unscaled, preds)
