@@ -11,6 +11,7 @@ from algorithms import (
     moving_average,
     elastic_net,
     lstm,
+    lightgbm_algo,
 )
 
 ALGORITHMS = {
@@ -25,4 +26,5 @@ ALGORITHMS = {
     "moving_average": ("Moving Average", moving_average.run_algorithm),
     "elastic_net": ("Elastic Net", elastic_net.run_algorithm),
     "lstm": ("LSTM", lstm.run_algorithm),
+    "lightgbm": ("LightGBM", lightgbm_algo.run_algorithm),
 }

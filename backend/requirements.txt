@@ -11,4 +11,4 @@ yfinance
 feedparser
 pydantic
 openai
-httpx
+httpxlightgbm
