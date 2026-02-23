@@ -74,8 +74,22 @@ def _bollinger_pct_b(closes: List[float], period: int = BOLLINGER_PERIOD, num_st
     return (price - lower) / (upper - lower)
 
 
+def _adx(closes: List[float], period: int = 14) -> Optional[float]:
+    """Simplified ADX approximation. Returns 0-100 (strength). >25 is trending."""
+    if len(closes) < period * 2:
+        return None
+    # Use price displacement over period as a proxy for trend strength
+    # A real ADX is complex with DM+/DM-; displacement/ATR is a robust proxy
+    displace = abs(closes[-1] - closes[-period])
+    recent = closes[-period:]
+    vol = sum(abs(recent[i] - recent[i - 1]) for i in range(1, len(recent)))
+    if vol == 0:
+        return 0.0
+    return (displace / vol) * 100.0
+
+
 class TechnicalAnalyst:
-    """Combines RSI, MACD, Bollinger %B into one signal (-1 to 1) for the ensemble."""
+    """Combines RSI, MACD, Bollinger %B into one signal (-1 to 1). Now with Regime Detection."""
 
     def predict(self, symbol: str, history_close_series=None) -> MLSignal:
         if history_close_series is None or len(history_close_series) < max(RSI_PERIOD + 1, MACD_SLOW + MACD_SIGNAL, BOLLINGER_PERIOD):
@@ -85,41 +99,55 @@ class TechnicalAnalyst:
             rsi = _rsi(closes)
             macd = _macd_signal(closes)
             pct_b = _bollinger_pct_b(closes)
-            # Normalize to -1..1 and combine; weight extremes more (smarter signals)
-            # RSI: 50 neutral, <30 oversold (bullish), >70 overbought (bearish); stronger when extreme
+            trend_strength = _adx(closes) or 0.0
+            
+            # Regime: Trending if ADX > 25, otherwise Ranging
+            regime = "trending" if trend_strength > 25 else "ranging"
+
+            # 1) Score components (same logic as before)
             rsi_score = 0.0
             if rsi is not None:
-                rsi_score = (50.0 - rsi) / 50.0  # -1 at RSI 100, +1 at RSI 0
-                if rsi <= 30:
-                    rsi_score = 0.5 + 0.5 * (30 - rsi) / 30.0  # oversold: boost bullish to max 1.0
-                elif rsi >= 70:
-                    rsi_score = -0.5 - 0.5 * (rsi - 70) / 30.0  # overbought: boost bearish
+                rsi_score = (50.0 - rsi) / 50.0
+                if rsi <= 30: rsi_score = 0.5 + 0.5 * (30 - rsi) / 30.0
+                elif rsi >= 70: rsi_score = -0.5 - 0.5 * (rsi - 70) / 30.0
                 rsi_score = max(-1.0, min(1.0, rsi_score))
+
             macd_score = 0.0
             if macd is not None and closes[-1]:
                 macd_norm = macd / closes[-1] * 100
                 macd_score = max(-1.0, min(1.0, macd_norm * 5))
-            # %B: >1 overbought (bearish), <0 oversold (bullish)
+
             bb_score = 0.0
             if pct_b is not None:
                 bb_score = (0.5 - pct_b) * 2
                 bb_score = max(-1.0, min(1.0, bb_score))
-            # Short-term trend: price vs 20-day MA (confirmation)
+
             trend_score = 0.0
             if len(closes) >= 21:
                 price = closes[-1]
                 ma20 = sum(closes[-21:-1]) / 20.0
                 if ma20 and ma20 > 0:
                     trend_pct = (price - ma20) / ma20
-                    trend_score = max(-1.0, min(1.0, trend_pct * 10.0))  # e.g. +5% -> +0.5
-            # Blend: RSI and MACD 35% each (key for entries), BB 15%, trend 15%
-            composite = 0.35 * rsi_score + 0.35 * macd_score + 0.15 * bb_score + 0.15 * trend_score
+                    trend_score = max(-1.0, min(1.0, trend_pct * 10.0))
+
+            # 2) Smart Blending via Regime
+            if regime == "trending":
+                # Trending: Weight MACD and Trend Confirmation (50 / 30), RSI only 10%
+                composite = 0.50 * macd_score + 0.30 * trend_score + 0.10 * rsi_score + 0.10 * bb_score
+            else:
+                # Ranging: Weight RSI and Bollinger (40 / 40), MACD only 10%
+                composite = 0.40 * rsi_score + 0.40 * bb_score + 0.10 * macd_score + 0.10 * trend_score
+            
             composite = max(-1.0, min(1.0, composite))
-            return MLSignal(
+            
+            signal = MLSignal(
                 confidence_score=composite,
                 predicted_price_delta=composite * (closes[-1] * 0.01) if closes else 0.0,
                 model_name="Technical",
             )
+            # Attach regime metadata
+            signal.metadata = {"regime": regime, "trend_strength": round(trend_strength, 1)}
+            return signal
         except Exception as e:
             logger.debug("TechnicalAnalyst failed %s: %s", symbol, e)
             return MLSignal(confidence_score=0.0, predicted_price_delta=0.0, model_name="Technical")

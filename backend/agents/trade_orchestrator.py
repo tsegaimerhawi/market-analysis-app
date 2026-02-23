@@ -153,11 +153,34 @@ class TradeOrchestrator:
         macro = self.llm.get_macro(macro_indicators or {}, symbol)
         self._log(symbol, "macro", f"Macro stance={macro.stance:.3f}, confidence={macro.confidence:.2f}", macro.model_dump())
 
-        # 4) Weighted composite score (-1 to 1)
+        # 4) Weighted composite score (-1 to 1) with Regime Awareness
+        w_lstm, w_xgb, w_tech = WEIGHT_LSTM, WEIGHT_XGBOOST, WEIGHT_TECHNICAL
+        
+        regime = technical_signal.metadata.get("regime", "ranging") if technical_signal.metadata else "ranging"
+        regime_msg = f"Regime: {regime}"
+        
+        if regime == "trending":
+            # In trending markets, let the ML models (Trend followers) lead
+            w_tech = WEIGHT_TECHNICAL * 0.8  # slightly less technical
+            w_lstm = WEIGHT_LSTM * 1.1
+            w_xgb = WEIGHT_XGBOOST * 1.1
+        else:
+            # In ranging markets, rely more on Technical (Mean Reversion)
+            w_tech = WEIGHT_TECHNICAL * 1.5
+            w_lstm = WEIGHT_LSTM * 0.8
+            w_xgb = WEIGHT_XGBOOST * 0.8
+
+        # Normalize weights to ensure they sum to the original total for ML/Tech
+        total_orig = WEIGHT_LSTM + WEIGHT_XGBOOST + WEIGHT_TECHNICAL
+        total_curr = w_lstm + w_xgb + w_tech
+        w_lstm = w_lstm * (total_orig / total_curr)
+        w_xgb = w_xgb * (total_orig / total_curr)
+        w_tech = w_tech * (total_orig / total_curr)
+
         composite = (
-            WEIGHT_LSTM * lstm_signal.confidence_score
-            + WEIGHT_XGBOOST * xgb_signal.confidence_score
-            + WEIGHT_TECHNICAL * technical_signal.confidence_score
+            w_lstm * lstm_signal.confidence_score
+            + w_xgb * xgb_signal.confidence_score
+            + w_tech * technical_signal.confidence_score
             + WEIGHT_SENTIMENT * sentiment.polarity * sentiment.confidence
             + WEIGHT_MACRO * macro.stance * macro.confidence
         )
@@ -171,7 +194,7 @@ class TradeOrchestrator:
         ) / 5.0
         avg_confidence = max(0.0, min(1.0, avg_confidence))
 
-        # 4b) Signal agreement: count how many of 5 signals agree in direction (use 0.05 so weak positives count when sentiment/macro are 0)
+        # 4b) Signal agreement: count how many of 5 signals agree in direction
         signal_agree_thresh = 0.05
         sig_bull = sum(1 for s in [
             lstm_signal.confidence_score,
@@ -190,54 +213,51 @@ class TradeOrchestrator:
         agreement = "bull" if sig_bull > sig_bear else ("bear" if sig_bear > sig_bull else "neutral")
         agree_count = max(sig_bull, sig_bear) if agreement != "neutral" else 0
 
-        # 4c) Short-term trend from price vs 20-day MA (avoid buying into downtrend / selling into uptrend without confirmation)
+        # 4c) Short-term trend alignment
         trend_align = 1.0
         if history_closes and len(history_closes) >= 21:
             price = float(history_closes[-1])
             ma20 = sum(history_closes[-21:-1]) / 20.0
             if ma20 and ma20 > 0:
-                trend_pct = (price - ma20) / ma20  # + = above MA (uptrend), - = below MA (downtrend)
-                # Scale: strong downtrend (e.g. -5%) penalizes buy; strong uptrend penalizes sell
+                trend_pct = (price - ma20) / ma20
                 if composite >= 0.1 and trend_pct < -0.03:
-                    trend_align = max(0.3, 1.0 + trend_pct)  # reduce buy size in downtrend
+                    trend_align = max(0.3, 1.0 + trend_pct)
                 elif composite <= -0.1 and trend_pct > 0.03:
-                    trend_align = max(0.3, 1.0 - trend_pct)  # reduce sell size in uptrend
+                    trend_align = max(0.3, 1.0 - trend_pct)
 
-        self._log(symbol, "ensemble", f"Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "sig_bull": sig_bull, "sig_bear": sig_bear})
+        self._log(symbol, "ensemble", f"{regime_msg} | Composite={composite:.3f}, confidence={avg_confidence:.3f}, agreement={agreement}({agree_count}/5), trend_align={trend_align:.2f}", {"composite": composite, "regime": regime})
 
-        # 4d) Full control path: no guardrails, no confidence floor, no dampening, no agreement; composite -> action, simple position size
-        # Use lower thresholds so agent can buy when LSTM/XGB/Tech are mildly bullish (sentiment/macro often 0 without API keys)
+        # 4d) Full control path
         FULL_CONTROL_BUY_THRESHOLD = 0.04
         FULL_CONTROL_SELL_THRESHOLD = -0.04
         FULL_CONTROL_MAX_POSITION_CAP = 0.5
         if full_control:
             action = "Buy" if composite >= FULL_CONTROL_BUY_THRESHOLD else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
-            # Position size: composite and confidence only, single cap, no volatility scaling
             raw_size = 0.5 * abs(composite) * (0.3 + 0.7 * avg_confidence) if action != "Hold" else 0.0
             position_size = max(0.0, min(FULL_CONTROL_MAX_POSITION_CAP, raw_size))
-            reason = f"[Full control] LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
+            reason = f"[Full control] {regime} | LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
             return TradeDecision(
                 action=action,
                 position_size=position_size,
                 confidence=avg_confidence,
                 reason=reason,
                 guardrail_triggered=False,
-                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                weights_used={"lstm": w_lstm, "xgboost": w_xgb, "technical": w_tech, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
             )
 
-        # 5) Confidence floor: don't act on noise (lowered so agent can trade when sentiment/macro are 0/stub)
+        # 5) Confidence floor
         if avg_confidence < CONFIDENCE_FLOOR:
             self._log(symbol, "filter", f"Hold: avg_confidence below floor {CONFIDENCE_FLOOR}", {"avg_confidence": avg_confidence})
             return TradeDecision(
                 action="Hold",
                 position_size=0.0,
                 confidence=avg_confidence,
-                reason=f"Hold: low conviction (conf={avg_confidence:.2f}). LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f}",
+                reason=f"Hold: low conviction (conf={avg_confidence:.2f}). {regime} | LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f}",
                 guardrail_triggered=False,
-                weights_used={"lstm": WEIGHT_LSTM, "xgboost": WEIGHT_XGBOOST, "technical": WEIGHT_TECHNICAL, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
+                weights_used={"lstm": w_lstm, "xgboost": w_xgb, "technical": w_tech, "sentiment": WEIGHT_SENTIMENT, "macro": WEIGHT_MACRO},
             )
 
-        # 6) Macro/sentiment veto: only dampen on *strong* headwinds (LLM often returns mildly bearish; don't block every buy)
+        # 6) Macro/sentiment veto
         sent_effective = sentiment.polarity * sentiment.confidence
         macro_effective = macro.stance * macro.confidence
         if composite >= 0.1:

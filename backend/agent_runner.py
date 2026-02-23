@@ -170,19 +170,34 @@ def run_agent_cycle():
             pos_qty = float(position["quantity"]) if position else 0
             avg_cost = float(position["avg_cost"]) if position else None
 
-            # --- Stop-loss / Take-profit (skipped when full_control; only agent decides sells) ---
-            # (No changes here, kept for context)
+            # --- Adaptive Volatility Stop-Loss (Smart Update) ---
+            atr_pct = None
+            if closes and len(closes) >= 14:
+                # Approximate ATR using typical range of last 14 days
+                recent_closes = closes[-14:]
+                high_low_range = max(recent_closes) - min(recent_closes)
+                atr_price = high_low_range / 2.0  # simple approximation without full OHLC
+                atr_pct = (atr_price / current_price * 100) if current_price else 2.0
+
             if not full_control and position and current_price and avg_cost and avg_cost > 0 and pos_qty > 0:
                 pnl_pct = (current_price - avg_cost) / avg_cost * 100
-                if stop_loss_pct is not None and pnl_pct <= -stop_loss_pct:
+                
+                # Dynamic Stop-Loss calculation
+                # Use max of (user setting, 2.5 * ATR) to ensure we don't get stopped out by noise
+                current_stop_floor = stop_loss_pct
+                if atr_pct:
+                    dynamic_stop = max(stop_loss_pct or 0, atr_pct * 2.5)
+                    current_stop_floor = min(dynamic_stop, 15.0) # cap at 15% to avoid huge drawdowns
+                
+                if current_stop_floor is not None and pnl_pct <= -current_stop_floor:
                     ok, _, _ = execute_sell(symbol, pos_qty, current_price)
                     order_id = None
                     if ok:
                         recent = get_orders(limit=1)
                         order_id = recent[0]["id"] if recent else None
-                    add_agent_history(symbol, "Sell", 1.0, f"Stop-loss: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%", executed=ok, order_id=order_id, guardrail_triggered=True)
-                    add_agent_reasoning(symbol, "stop_loss", f"Stop-loss triggered: P&L {pnl_pct:.1f}% <= -{stop_loss_pct}%, sold full position", {"pnl_pct": pnl_pct})
-                    cycle_updates.append(f"🛑 SELL {symbol} (stop-loss) P&L {pnl_pct:.1f}%")
+                    add_agent_history(symbol, "Sell", 1.0, f"Smart Stop: P&L {pnl_pct:.1f}% <= -{current_stop_floor:.1f}% (ATR-aware)", executed=ok, order_id=order_id, guardrail_triggered=True)
+                    add_agent_reasoning(symbol, "stop_loss", f"Smart Stop triggered: P&L {pnl_pct:.1f}% <= -{current_stop_floor:.1f}%. ATR was {atr_pct:.1f}%", {"pnl_pct": pnl_pct, "atr_pct": atr_pct})
+                    cycle_updates.append(f"🛑 SELL {symbol} (smart-stop) P&L {pnl_pct:.1f}%")
                     continue
                 if take_profit_pct is not None and pnl_pct >= take_profit_pct:
                     ok, _, _ = execute_sell(symbol, pos_qty, current_price)
