@@ -60,7 +60,7 @@ def _build_features_and_targets(closes: List[float]) -> Optional[tuple]:
         dist_ma = (closes[i] - ma20) / ma20 if ma20 else 0
         X_list.append([r1, r5, r20, vol, rsi / 100.0 - 0.5, dist_ma])
         next_ret = rets[i] if i < len(rets) else 0
-        y_list.append(1 if next_ret > 0 else -1)
+        y_list.append(1 if next_ret > 0 else 0)
     return (X_list, y_list)
 
 
@@ -105,6 +105,7 @@ def _train_and_predict_xgb(closes: List[float]) -> Optional[float]:
     pred = model.predict(X_future)[0]
     proba = model.predict_proba(X_future)
     if proba.shape[1] == 2:
+        # proba[0, 1] is P(y=1). map [0,1] to [-1,1]
         confidence = (float(proba[0, 1]) - 0.5) * 2
     else:
         confidence = 1.0 if pred == 1 else -1.0

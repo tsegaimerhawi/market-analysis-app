@@ -8,7 +8,7 @@ def get_history(symbol, start_date=None, end_date=None):
     Fetch OHLCV history for a symbol. Returns DataFrame with DatetimeIndex and Close (and Open, High, Low, Volume).
     Same format as load_data from CSV for algorithm compatibility.
     """
-    symbol = (symbol or "").strip().upper()
+    symbol = (symbol or "").strip().upper().replace(".", "-")
     if not symbol:
         return None
     try:
@@ -35,7 +35,7 @@ def get_history(symbol, start_date=None, end_date=None):
             return None
         return df[["Open", "High", "Low", "Close", "Volume"]].copy() if all(c in df.columns for c in ["Open", "High", "Low", "Volume"]) else df[["Close"]].copy()
     except Exception as e:
-        logger.exception("yfinance get_history failed: %s", e)
+        logger.exception("yfinance get_history failed for symbol %s: %s", symbol, e)
         return None
 
 
@@ -44,7 +44,7 @@ def get_info(symbol):
     Fetch full company info from yfinance (everything available).
     Returns a dict suitable for JSON (scalars only; nested objects simplified).
     """
-    symbol = (symbol or "").strip().upper()
+    symbol = (symbol or "").strip().upper().replace(".", "-")
     if not symbol:
         return None
     try:
@@ -71,7 +71,7 @@ def get_info(symbol):
                 out[k] = str(v)
         return out
     except Exception as e:
-        logger.exception("yfinance get_info failed: %s", e)
+        logger.exception("yfinance get_info failed for symbol %s: %s", symbol, e)
         return {"symbol": symbol, "error": str(e)}
 
 
@@ -80,7 +80,7 @@ def get_quote(symbol):
     Get current/latest price for a symbol (for trading). Uses last close or regularMarketPrice.
     Returns dict with price, previousClose, currency, or None if invalid.
     """
-    symbol = (symbol or "").strip().upper()
+    symbol = (symbol or "").strip().upper().replace(".", "-")
     if not symbol:
         return None
     try:
@@ -91,9 +91,12 @@ def get_quote(symbol):
         ticker = yf.Ticker(symbol)
         info = ticker.info
         if not info:
-            return None
-        # Prefer regularMarketPrice; fallback to previousClose or last close from history
-        price = info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose")
+            # Fallback for some assets where info is flaky even with correct ticker
+            price = None
+        else:
+            # Prefer regularMarketPrice; fallback to previousClose or last close from history
+            price = info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose")
+        
         if price is None:
             hist = ticker.history(period="5d")
             if hist is not None and not hist.empty and "Close" in hist.columns:
@@ -103,12 +106,12 @@ def get_quote(symbol):
         return {
             "symbol": symbol,
             "price": round(float(price), 2),
-            "previousClose": info.get("previousClose"),
-            "currency": info.get("currency", "USD"),
-            "shortName": info.get("shortName") or info.get("longName"),
+            "previousClose": info.get("previousClose") if info else None,
+            "currency": info.get("currency", "USD") if info else "USD",
+            "shortName": (info.get("shortName") or info.get("longName")) if info else symbol,
         }
     except Exception as e:
-        logger.exception("get_quote failed: %s", e)
+        logger.exception("get_quote failed for symbol %s: %s", symbol, e)
         return None
 
 

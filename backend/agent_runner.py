@@ -159,6 +159,7 @@ def run_agent_cycle():
     for symbol in symbols_to_run:
         if not symbol:
             continue
+        order_id = None
         try:
             quote = get_quote(symbol)
             current_price = quote.get("price") if quote else None
