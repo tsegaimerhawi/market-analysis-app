@@ -300,6 +300,9 @@ def reset_paper_account(initial_cash=None):
         conn.execute("UPDATE account SET cash_balance = ?, initial_balance = ? WHERE id = 1", (amount, amount))
         conn.execute("DELETE FROM portfolio")
         conn.execute("DELETE FROM orders")
+        conn.execute("DELETE FROM limit_orders")
+        conn.execute("DELETE FROM agent_reasoning")
+        conn.execute("DELETE FROM agent_history")
         conn.commit()
     return get_cash_balance()
 

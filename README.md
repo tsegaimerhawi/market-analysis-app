@@ -16,22 +16,32 @@ A web-based platform to analyze stock data using **10 prediction algorithms**. B
 ## Project structure
 
 - **backend/**
-  - `db.py` – SQLite DB: watchlist, account (paper cash), portfolio (positions), orders.
-  - `main.py` – API: `/api/watchlist`, `/api/company/<symbol>`, `/api/compare`, `/api/predict-future`, `/api/portfolio`, `/api/quote/<symbol>`, `/api/order`.
-  - `services/company_service.py` – yfinance integration and full company info.
-  - `algorithms/ensemble.py` – Multi-model ensemble and recursive prediction logic.
-  - `algorithms/` – 10 prediction modules (all accept symbol or CSV path).
+  - `main.py` – Entry point and background tasks.
+  - `config.py` – Configuration management.
+  - `routes/` – API blueprints (watchlist, company, portfolio, agent, etc.).
+  - `db.py` – SQLite DB management.
+  - `services/` – Business logic (company, news, macro).
+  - `algorithms/` – Prediction modules.
 - **frontend/**
-  - `Watchlist.jsx` – Add/remove companies, view company info, **Trade** quick action.
-  - `FuturePrediction.js` – Ensemble dashboard with charts and voting results.
-  - `CompanyInfo.jsx` – Full company info panel (everything from yfinance).
-  - `StockAnalysis.jsx` – Comparison view for baseline models.
-  - `Portfolio.jsx` – Paper portfolio: cash, positions (with live value), order history.
-  - `Trade.jsx` – Buy/sell form with live quote and position-aware sell.
+  - `vite.config.js` – Vite configuration.
+  - `src/` – React application using Vite.
 
 ## Run the app
 
-### Backend
+### Using Docker (Highly Recommended)
+
+The easiest way to run the entire stack is using Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+- Backend: `http://localhost:5001`
+- Frontend: `http://localhost:80` (mapped from container 80)
+
+### Manual Setup
+
+#### Backend
 
 ```bash
 cd backend
@@ -39,41 +49,29 @@ pip install -r requirements.txt
 python main.py
 ```
 
-API runs at `http://localhost:5001` (port 5001 avoids conflict with macOS AirPlay on 5000). The watchlist is stored in `backend/watchlist.db` (created on first run). Override with `PORT=5002 python main.py` if needed.
-
-For the **Trading Agent** LLM layer (Sentiment + Macro), set your OpenRouter API key:
-
-```bash
-export OPEN_ROUTER_TRADER_API_KEY=your_key
-# or
-export OPEN_ROUTER_API_KEY=your_key
-```
-
-To receive **Telegram notifications** when the agent runs and has updates (buy/sell, stop-loss, take-profit), set your bot token and chat ID:
-
-```bash
-export TELEGRAM_HTTP_API_KEY=your_bot_token
-export TELEGRAM_CHAT_ID=your_chat_id
-```
-
-(Get your chat ID by messaging [@userinfobot](https://t.me/userinfobot) or by starting a chat with your bot and calling `getUpdates` on the Bot API.)
-
-For **real news headlines** (Sentiment agent): set `NEWS_API_KEY` (from [NewsAPI.org](https://newsapi.org)). For **macro data** (Macro agent): set `MACRO_API_KEY` or `ALPHA_VANTAGE_API_KEY`. If unset, stubs are used.
-
-### Frontend
+#### Frontend
 
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
 App runs at `http://localhost:3000`.
 
-### Usage
+### Configuration
 
-1. **Watchlist** – Add companies by symbol (e.g. AAPL, MSFT). Click **Company info** on any row to see full data from the system. Remove with **Remove**.
-2. **Stock Analysis** – Select a company from the dropdown, set dates, choose algorithms, then **Compare algorithms**.
-3. **Future Prediction** – Navigate to the **Future Prediction** tab. Select a company and a future date range. Click **Forecast** to view the ensemble consensus, individual model paths, and the majority decision recommendation. If data is available for that period, a "Ground Truth" line will appear for comparison.
-4. **Portfolio** – View paper cash balance, positions (with current market value and P&L), and recent orders.
-5. **Trade** – Enter a symbol (or click **Trade** from the watchlist), choose Buy/Sell, quantity, and place a paper order at the current quote price.
+For the **Trading Agent** LLM layer (Sentiment + Macro), set your OpenRouter API key in `backend/.env`:
+
+```bash
+OPEN_ROUTER_API_KEY=your_key
+```
+
+To receive **Telegram notifications**, set your bot token and chat ID:
+
+```bash
+TELEGRAM_HTTP_API_KEY=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+For **real news headlines**: set `NEWS_API_KEY`. For **macro data**: set `MACRO_API_KEY`. If unset, stubs are used.

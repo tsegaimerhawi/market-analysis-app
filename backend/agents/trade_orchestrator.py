@@ -16,12 +16,21 @@ from agents.technical_analyst import TechnicalAnalyst
 from agents.llm_manager import LLMManager
 from utils.logger import logger
 
-# Weights for ensemble (must sum to 1.0)
-WEIGHT_LSTM = 0.35
-WEIGHT_XGBOOST = 0.15
-WEIGHT_TECHNICAL = 0.10
-WEIGHT_SENTIMENT = 0.30
-WEIGHT_MACRO = 0.10
+try:
+    from config import config
+    WEIGHT_LSTM = float(os.environ.get("AGENT_WEIGHT_LSTM", 0.35))
+    WEIGHT_XGBOOST = float(os.environ.get("AGENT_WEIGHT_XGBOOST", 0.15))
+    WEIGHT_TECHNICAL = float(os.environ.get("AGENT_WEIGHT_TECHNICAL", 0.10))
+    WEIGHT_SENTIMENT = float(os.environ.get("AGENT_WEIGHT_SENTIMENT", 0.30))
+    WEIGHT_MACRO = float(os.environ.get("AGENT_WEIGHT_MACRO", 0.10))
+    CONFIDENCE_FLOOR = config.AGENT_CONFIDENCE_FLOOR
+except ImportError:
+    WEIGHT_LSTM = 0.35
+    WEIGHT_XGBOOST = 0.15
+    WEIGHT_TECHNICAL = 0.10
+    WEIGHT_SENTIMENT = 0.30
+    WEIGHT_MACRO = 0.10
+    CONFIDENCE_FLOOR = 0.12
 
 def _risk_mode() -> str:
     return (os.environ.get("AGENT_RISK_MODE") or "balanced").strip().lower()
@@ -218,7 +227,6 @@ class TradeOrchestrator:
             )
 
         # 5) Confidence floor: don't act on noise (lowered so agent can trade when sentiment/macro are 0/stub)
-        CONFIDENCE_FLOOR = 0.12
         if avg_confidence < CONFIDENCE_FLOOR:
             self._log(symbol, "filter", f"Hold: avg_confidence below floor {CONFIDENCE_FLOOR}", {"avg_confidence": avg_confidence})
             return TradeDecision(

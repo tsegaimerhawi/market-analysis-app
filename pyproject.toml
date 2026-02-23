@@ -1,0 +1,31 @@
+[project]
+name = "market-analysis-app"
+version = "0.1.0"
+dependencies = [
+    "Flask",
+    "python-dotenv",
+    "numpy",
+    "pandas",
+    "flask-cors",
+    "scikit-learn",
+    "statsmodels",
+    "xgboost",
+    "tensorflow",
+    "yfinance",
+    "feedparser",
+    "pydantic",
+    "openai",
+    "httpx",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = "test_*.py"

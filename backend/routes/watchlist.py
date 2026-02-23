@@ -1,16 +1,17 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from db import get_watchlist, add_to_watchlist, remove_from_watchlist
+from typing import Any, Tuple
 
 watchlist_bp = Blueprint('watchlist', __name__)
 
 @watchlist_bp.route("/", methods=["GET"])
-def api_watchlist():
+def api_watchlist() -> Any:
     """Return the user's watchlist (all saved companies)."""
     items = get_watchlist()
     return jsonify({"watchlist": items})
 
 @watchlist_bp.route("/", methods=["POST"])
-def api_watchlist_add():
+def api_watchlist_add() -> Any:
     """Add a company to the watchlist."""
     data = request.get_json(silent=True) or {}
     symbol = (data.get("symbol") or request.form.get("symbol") or "").strip().upper()
@@ -23,7 +24,7 @@ def api_watchlist_add():
     return jsonify({"watchlist": get_watchlist(), "added": item})
 
 @watchlist_bp.route("/<symbol_or_id>", methods=["DELETE"])
-def api_watchlist_remove(symbol_or_id):
+def api_watchlist_remove(symbol_or_id: str) -> Any:
     """Remove a company by symbol or by id."""
     if remove_from_watchlist(symbol_or_id):
         return jsonify({"watchlist": get_watchlist()})
