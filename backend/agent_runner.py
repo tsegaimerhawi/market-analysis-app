@@ -189,6 +189,9 @@ def run_agent_cycle():
             pos_qty = float(position["quantity"]) if position else 0
             avg_cost = float(position["avg_cost"]) if position else None
 
+            closes = _get_closes(symbol)
+            volatility = _volatility_from_closes(closes) if closes else None
+            
             # --- Adaptive Volatility Stop-Loss (Smart Update) ---
             atr_pct = None
             if closes and len(closes) >= 14:
@@ -264,8 +267,6 @@ def run_agent_cycle():
                     cycle_updates.append(f"✅ SELL {symbol} (take-profit) P&L {pnl_pct:.1f}%")
                     continue
 
-            closes = _get_closes(symbol)
-            volatility = _volatility_from_closes(closes) if closes else None
             headlines = get_headlines(symbol)
             macro_indicators = get_macro_indicators()
 

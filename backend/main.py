@@ -84,7 +84,9 @@ def _agent_loop():
                 logger.debug("Agent loop: agent disabled, skipping cycle")
         except Exception as e:
             logger.exception("Agent loop error: %s", e)
-        time.sleep(30 * 60)
+        
+        interval = config.AGENT_INTERVAL_MINUTES * 60
+        time.sleep(interval)
 
 
 def _telegram_poll_loop():
@@ -119,12 +121,14 @@ def _limit_order_loop():
 
 
 if __name__ == "__main__":
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    use_reloader = os.environ.get("USE_RELOADER", "true").lower() in ("1", "true", "yes")
+    
+    # Start threads if not using reloader, or if we are in the reloader's child process
+    if not use_reloader or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=_volatile_refresh_loop, daemon=True).start()
         threading.Thread(target=_agent_loop, daemon=True).start()
         threading.Thread(target=_telegram_poll_loop, daemon=True).start()
         threading.Thread(target=_limit_order_loop, daemon=True).start()
         logger.info("Background threads started")
-
-    use_reloader = os.environ.get("USE_RELOADER", "true").lower() in ("1", "true", "yes")
+    
     app.run(debug=True, port=config.PORT, use_reloader=use_reloader, reloader_type="stat")

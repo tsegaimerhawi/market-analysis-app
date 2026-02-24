@@ -17,6 +17,7 @@ class Config:
     # Agent Settings
     AGENT_ENABLED_DEFAULT = False
     AGENT_CONFIDENCE_FLOOR = float(os.environ.get("AGENT_CONFIDENCE_FLOOR", 0.18))
+    AGENT_INTERVAL_MINUTES = int(os.environ.get("AGENT_INTERVAL_MINUTES", 5))
 
     # API Keys
     OPEN_ROUTER_API_KEY = os.environ.get("OPEN_ROUTER_API_KEY")
