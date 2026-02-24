@@ -11,8 +11,8 @@
   "PATH",
   "CLOV",
   "UWMC",
-  "SNOW",
   "ESTC",
+  "SNOW",
   "AI",
   "AFRM",
   "OPEN",
@@ -31,12 +31,12 @@
   "ROKU",
   "AAPL",
   "HOOD",
-  "TLRY",
   "PYPL",
   "SOFI",
   "AMD",
-  "RIVN",
+  "TLRY",
   "SNDL",
-  "VEEV",
-  "SHOP"
+  "RIVN",
+  "SHOP",
+  "VEEV"
 ]

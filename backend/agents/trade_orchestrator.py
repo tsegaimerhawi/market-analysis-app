@@ -266,7 +266,16 @@ class TradeOrchestrator:
         )
         agree_count = max(sig_bull, sig_bear) if agreement != "neutral" else 0
 
-        # 4c) Short-term trend alignment
+        # 4c) Consensus Multiplier: Reward strong agreement amongst specialized models
+        if agree_count >= 3:
+            # Boost composite when models agree: 3 agree (+25%), 4 agree (+50%), 5 agree (+75%)
+            consensus_boost = 1.0 + (agree_count - 2) * 0.25
+            composite = composite * consensus_boost
+        elif agree_count <= 2:
+            # Dampen when there is major disagreement/noise
+            composite = composite * 0.8
+
+        # 4d) Short-term trend alignment
         trend_align = 1.0
         if history_closes and len(history_closes) >= 21:
             price = float(history_closes[-1])
@@ -277,6 +286,8 @@ class TradeOrchestrator:
                     trend_align = max(0.3, 1.0 + trend_pct)
                 elif composite <= -0.1 and trend_pct > 0.03:
                     trend_align = max(0.3, 1.0 - trend_pct)
+        
+        composite = max(-1.0, min(1.0, composite * trend_align))
 
         self._log(
             symbol,
@@ -296,9 +307,10 @@ class TradeOrchestrator:
                 else ("Sell" if composite <= FULL_CONTROL_SELL_THRESHOLD else "Hold")
             )
             raw_size = (
-                0.5 * abs(composite) * (0.3 + 0.7 * avg_confidence) if action != "Hold" else 0.0
+                1.0 * abs(composite) * (0.2 + 0.8 * avg_confidence) if action != "Hold" else 0.0
             )
-            position_size = max(0.0, min(FULL_CONTROL_MAX_POSITION_CAP, raw_size))
+            # Cap at 60% of cash balance to keep some dry powder
+            position_size = max(0.0, min(0.6, raw_size))
             reason = f"[Full control] {regime} | LSTM={lstm_signal.confidence_score:.2f}, XGB={xgb_signal.confidence_score:.2f}, Tech={technical_signal.confidence_score:.2f}, Sent={sentiment.polarity:.2f}, Macro={macro.stance:.2f} -> composite={composite:.2f}"
             return TradeDecision(
                 action=action,

@@ -115,7 +115,7 @@ class LSTMPredictor:
             result = _train_and_predict_lstm(closes)
             if result is not None:
                 pred_return, current_price = result
-                confidence = max(-1.0, min(1.0, pred_return * 10.0))
+                confidence = max(-1.0, min(1.0, pred_return * 100.0))
                 pred_delta = pred_return * current_price if current_price else 0
                 return MLSignal(
                     confidence_score=confidence,

@@ -36,6 +36,7 @@ class MLSignal(BaseModel):
     confidence_score: float = Field(ge=-1.0, le=1.0)
     predicted_price_delta: float = Field(description="Expected price change (e.g. % or absolute)")
     model_name: str = ""
+    metadata: dict = Field(default_factory=dict)
 
 
 # --- Orchestrator output ---

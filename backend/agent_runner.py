@@ -63,7 +63,17 @@ def _get_closes(symbol: str, days: int = 60):
     df = get_history(symbol, start, end_str)
     if df is None or df.empty or "Close" not in df.columns:
         return None
-    return df["Close"].tolist()
+    
+    closes = df["Close"].tolist()
+    
+    # Append current live quote to make the series "live" for the models
+    quote = get_quote(symbol)
+    if quote and "price" in quote:
+        current_price = float(quote["price"])
+        if len(closes) > 0 and abs(closes[-1] - current_price) > 0.0001:
+            closes.append(current_price)
+            
+    return closes
 
 
 def _volatility_from_closes(closes):

@@ -126,7 +126,7 @@ class TechnicalAnalyst:
             macd_score = 0.0
             if macd is not None and closes[-1]:
                 macd_norm = macd / closes[-1] * 100
-                macd_score = max(-1.0, min(1.0, macd_norm * 5))
+                macd_score = max(-1.0, min(1.0, macd_norm * 25))
 
             bb_score = 0.0
             if pct_b is not None:
@@ -139,7 +139,7 @@ class TechnicalAnalyst:
                 ma20 = sum(closes[-21:-1]) / 20.0
                 if ma20 and ma20 > 0:
                     trend_pct = (price - ma20) / ma20
-                    trend_score = max(-1.0, min(1.0, trend_pct * 10.0))
+                    trend_score = max(-1.0, min(1.0, trend_pct * 40.0))
 
             # 2) Smart Blending via Regime
             if regime == "trending":
