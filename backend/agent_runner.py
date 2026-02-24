@@ -136,7 +136,8 @@ def run_agent_cycle():
             add_agent_reasoning(
                 "VOLATILE",
                 "volatile",
-                f"Added {len(extra)} volatile symbols (8h algo + small-cap bias): {', '.join(extra[:10])}{'...' if len(extra) > 10 else ''}",
+                f"Added {len(extra)} volatile symbols (8h algo + small-cap bias): {', '.join(extra[:10])}{'...' if len(extra) > 10 else ''}. "
+                f"CV leaders included in scan.",
                 {"count": len(extra), "symbols": extra},
             )
 

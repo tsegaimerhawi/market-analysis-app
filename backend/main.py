@@ -38,20 +38,35 @@ def _refresh_volatile_list():
         if not candidates:
             return
 
+        # 1) Get the top symbols for the actual trading file
         symbols = get_volatile_symbols(candidates, top_n=40)
         os.makedirs(os.path.dirname(volatile_path), exist_ok=True)
         with open(volatile_path, "w", encoding="utf-8") as f:
             json.dump(symbols, f, indent=2)
 
+        # 2) Get full scores (including CV) for the Telegram notification
+        results = get_volatile_symbols_with_scores(candidates, top_n=30)
         logger.info("Volatile list updated: %d symbols", len(symbols))
 
         try:
             from services.telegram_notify import send_message as send_telegram_message
 
-            display = ", ".join(symbols[:20])
-            if len(symbols) > 20:
-                display += f" … +{len(symbols) - 20} more"
-            msg = f"📊 Volatile stocks updated (30 min)\n{len(symbols)} symbols: {display}"
+            # Build detailed report for User to "Decide" or Review
+            symbols_display = ", ".join(symbols[:15])
+            cv_highlights = []
+            # Sort by CV for highlights
+            cv_sorted = sorted(results, key=lambda x: x["cv"] or 0, reverse=True)
+            for res in cv_sorted[:5]:
+                cv_highlights.append(f"{res['symbol']}({res['cv'] or 0:.1f}%)")
+
+            msg = (
+                f"📊 *Volatile Update (30m)*\n"
+                f"Count: {len(symbols)}\n"
+                f"Top: {symbols_display} ...\n\n"
+                f"💎 *High CV Leaders (Relative Risk):*\n"
+                f"{', '.join(cv_highlights)}\n"
+                f"_CV = StdDev/Mean. Decisive for risk monitoring._"
+            )
             send_telegram_message(msg)
         except Exception as te:
             logger.debug("Telegram volatile update notify skipped: %s", te)

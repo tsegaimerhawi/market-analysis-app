@@ -72,6 +72,18 @@ def _volatility_from_closes(closes: List[float]) -> Optional[float]:
     return math.sqrt(var * 252 * 6.5)
 
 
+def _cv_from_closes(closes: List[float]) -> Optional[float]:
+    """Return Coefficient of Variation (Standard Deviation / Mean) * 100."""
+    if not closes or len(closes) < MIN_BARS:
+        return None
+    mean = sum(closes) / len(closes)
+    if mean == 0:
+        return 0.0
+    var = sum((x - mean) ** 2 for x in closes) / len(closes)
+    std = math.sqrt(var)
+    return (std / mean) * 100.0
+
+
 def _get_market_cap(symbol: str) -> Optional[float]:
     """Return market cap in USD from yfinance info, or None."""
     symbol = (symbol or "").strip().upper()
@@ -90,16 +102,17 @@ def _get_market_cap(symbol: str) -> Optional[float]:
         return None
 
 
-def compute_volatility_score(symbol: str) -> Optional[Tuple[float, Optional[float]]]:
+def compute_volatility_score(symbol: str) -> Optional[Tuple[float, Optional[float], Optional[float]]]:
     """
     Compute volatility score for one symbol from recent intraday data.
-    Returns (volatility_score, market_cap) or None if insufficient data.
+    Returns (volatility_score, market_cap, cv) or None if insufficient data.
     Higher score = more volatile. Small-cap gets a boost.
     """
     closes = _get_intraday_closes(symbol)
     if not closes:
         return None
     vol = _volatility_from_closes(closes)
+    cv = _cv_from_closes(closes)
     if vol is None:
         return None
     cap = _get_market_cap(symbol)
@@ -108,7 +121,7 @@ def compute_volatility_score(symbol: str) -> Optional[Tuple[float, Optional[floa
         # Smaller cap → higher multiplier (e.g. 1.0 to 1.5)
         size_factor = 1.0 + 0.5 * (1.0 - min(1.0, cap / SMALL_CAP_CUTOFF))
         vol = vol * size_factor
-    return (vol, cap)
+    return (vol, cap, cv)
 
 
 def get_volatile_symbols(
@@ -130,9 +143,9 @@ def get_volatile_symbols(
         if not sym:
             continue
         try:
-            score_cap = compute_volatility_score(sym)
-            if score_cap is not None:
-                vol_score, _ = score_cap
+            score_data = compute_volatility_score(sym)
+            if score_data is not None:
+                vol_score, _, _cv = score_data
                 if vol_score >= min_volatility:
                     results.append((sym, vol_score))
         except Exception as e:
@@ -167,11 +180,16 @@ def get_volatile_symbols_with_scores(
         if not sym:
             continue
         try:
-            score_cap = compute_volatility_score(sym)
-            if score_cap is not None:
-                vol_score, cap = score_cap
+            score_data = compute_volatility_score(sym)
+            if score_data is not None:
+                vol_score, cap, cv = score_data
                 results.append(
-                    {"symbol": sym, "volatility_score": round(vol_score, 4), "market_cap": cap}
+                    {
+                        "symbol": sym,
+                        "volatility_score": round(vol_score, 4),
+                        "market_cap": cap,
+                        "cv": round(cv, 4) if cv is not None else None,
+                    }
                 )
         except Exception:
             continue
